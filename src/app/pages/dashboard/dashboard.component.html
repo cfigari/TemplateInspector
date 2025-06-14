@@ -1,0 +1,107 @@
+<div class="container-fluid p-4">
+  <h2 class="mb-4">CloudFormation Inspector</h2>
+  
+  <div class="row">
+    <div *ngFor="let stat of stats" class="col-md-3 mb-4">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="card-title">{{ stat.title }}</h5>
+              <h2 class="mb-0">{{ stat.value }}</h2>
+            </div>
+            <div class="icon-container">
+              <i [class]="stat.icon + ' fs-1 text-primary opacity-50'"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row mt-4">
+    <div class="col-md-8 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Distribución de Recursos AWS</h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">Distribución de tipos de recursos en tus plantillas CloudFormation</p>
+          <div class="placeholder-chart"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Templates Recientes</h5>
+        </div>
+        <div class="card-body">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              vpc-network.yaml
+              <span class="badge bg-success rounded-pill">Válido</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              lambda-api.json
+              <span class="badge bg-warning rounded-pill">Revisar</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              ecs-fargate.yaml
+              <span class="badge bg-danger rounded-pill">Error</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              s3-website.yaml
+              <span class="badge bg-success rounded-pill">Válido</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Problemas de Seguridad Detectados</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Template</th>
+                  <th>Recurso</th>
+                  <th>Problema</th>
+                  <th>Severidad</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>s3-bucket.yaml</td>
+                  <td>AWS::S3::Bucket</td>
+                  <td>Acceso público habilitado</td>
+                  <td><span class="badge bg-danger">Alta</span></td>
+                </tr>
+                <tr>
+                  <td>ec2-instance.yaml</td>
+                  <td>AWS::EC2::SecurityGroup</td>
+                  <td>Puerto 22 abierto a 0.0.0.0/0</td>
+                  <td><span class="badge bg-danger">Alta</span></td>
+                </tr>
+                <tr>
+                  <td>rds-mysql.yaml</td>
+                  <td>AWS::RDS::DBInstance</td>
+                  <td>Sin cifrado habilitado</td>
+                  <td><span class="badge bg-warning">Media</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

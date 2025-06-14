@@ -1,0 +1,16 @@
+<div class="sidebar">
+  <ul class="sidebar-menu">
+    <li *ngFor="let item of menuItems" class="sidebar-menu-item" [routerLink]="item.route" routerLinkActive="active">
+      <div class="sidebar-menu-item-content">
+        <i [class]="item.icon"></i>
+        <span class="sidebar-title">{{ item.title }}</span>
+      </div>
+    </li>
+  </ul>
+  
+  <!-- Versión en la parte inferior -->
+  <div class="version-info">
+    <span>v{{ version.number }}</span>
+    <span class="build-number">build {{ version.build }}</span>
+  </div>
+</div>

@@ -1,0 +1,93 @@
+<!-- Modal para visualizar templates -->
+<div class="modal fade" id="templateViewerModal" tabindex="-1" aria-labelledby="templateViewerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="templateViewerModalLabel">
+          <i class="bi" [ngClass]="template?.type === 'YAML' ? 'bi-file-earmark-code' : 'bi-file-earmark-zip'"></i>
+          {{ template?.name }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="container-fluid">
+          <div class="row">
+            <!-- Árbol de directorios (izquierda) -->
+            <div class="col-md-3 file-tree-container">
+              <div class="p-3">
+                <h6 class="mb-3">Estructura</h6>
+                
+                <div *ngIf="isLoading" class="text-center py-4">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                  </div>
+                </div>
+                
+                <div *ngIf="!isLoading" class="file-tree">
+                  <ul class="list-unstyled">
+                    <ng-container *ngFor="let node of fileTree">
+                      <ng-container *ngTemplateOutlet="fileTreeNode; context: { $implicit: node }"></ng-container>
+                    </ng-container>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Visualizador de contenido (derecha) -->
+            <div class="col-md-9 file-content-container">
+              <div class="p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h6 *ngIf="selectedFile">{{ selectedFile.name }}</h6>
+                  <div>
+                    <button class="btn btn-sm btn-outline-secondary" title="Copiar contenido" (click)="copyContent()">
+                      <i class="bi bi-clipboard"></i>
+                    </button>
+                  </div>
+                </div>
+                
+                <div *ngIf="isLoading" class="text-center py-4">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                  </div>
+                </div>
+                
+                <div *ngIf="!isLoading && selectedFile" class="file-content">
+                  <pre><code>{{ fileContent }}</code></pre>
+                </div>
+                
+                <div *ngIf="!isLoading && !selectedFile" class="text-center py-4 text-muted">
+                  <i class="bi bi-file-earmark-x fs-1 mb-3"></i>
+                  <p>Selecciona un archivo para ver su contenido</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Template para nodos del árbol de directorios -->
+<ng-template #fileTreeNode let-node>
+  <li class="file-tree-item" [class.active]="selectedFile === node">
+    <div class="file-tree-item-content" 
+         (click)="node.isDirectory ? toggleFolder(node) : selectFile(node)">
+      <i class="bi" [ngClass]="{
+        'bi-folder-fill': node.isDirectory,
+        'bi-file-earmark-code': !node.isDirectory && node.name.endsWith('.yaml') || node.name.endsWith('.yml'),
+        'bi-file-earmark-text': !node.isDirectory && !node.name.endsWith('.yaml') && !node.name.endsWith('.yml')
+      }"></i>
+      {{ node.name }}
+    </div>
+    
+    <ul class="list-unstyled ms-3" *ngIf="node.isDirectory && node.children">
+      <ng-container *ngFor="let childNode of node.children">
+        <ng-container *ngTemplateOutlet="fileTreeNode; context: { $implicit: childNode }"></ng-container>
+      </ng-container>
+    </ul>
+  </li>
+</ng-template>

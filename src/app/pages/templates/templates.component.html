@@ -1,0 +1,140 @@
+<div class="container-fluid p-4">
+  <h2 class="mb-4">Templates CloudFormation</h2>
+  
+  <!-- Área de subida de archivos -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="card-title">Subir Template</h5>
+      <p class="text-muted">Sube un archivo YAML de CloudFormation o un archivo ZIP con un proyecto completo</p>
+      
+      <div class="upload-area p-4 border rounded text-center mb-3" 
+           [class.border-primary]="selectedFile" 
+           [class.bg-light]="!selectedFile"
+           [class.dragging]="isDragging"
+           (dragover)="onDragOver($event)"
+           (dragleave)="onDragLeave($event)"
+           (drop)="onDrop($event)">
+        <div *ngIf="!selectedFile && !isUploading && !uploadSuccess && !uploadError">
+          <i class="bi bi-cloud-arrow-up fs-1 text-muted mb-3"></i>
+          <p>Arrastra y suelta tu archivo aquí o</p>
+          <label class="btn btn-primary">
+            Seleccionar Archivo
+            <input type="file" class="d-none" accept=".yaml,.yml,.zip" (change)="onFileSelected($event)">
+          </label>
+        </div>
+        
+        <div *ngIf="selectedFile && !isUploading && !uploadSuccess && !uploadError">
+          <i class="bi bi-file-earmark-code fs-1 text-primary mb-3"></i>
+          <p><strong>{{ selectedFile.name }}</strong> ({{ formatFileSize(selectedFile.size) }})</p>
+          <div class="d-flex justify-content-center gap-2">
+            <button class="btn btn-success" (click)="uploadFile()">Subir Archivo</button>
+            <button class="btn btn-outline-secondary" (click)="selectedFile = null">Cancelar</button>
+          </div>
+        </div>
+        
+        <div *ngIf="isUploading">
+          <i class="bi bi-arrow-repeat fs-1 text-primary mb-3 spin"></i>
+          <p>Subiendo archivo...</p>
+          <div class="progress">
+            <div class="progress-bar bg-primary" [style.width.%]="uploadProgress">{{ uploadProgress }}%</div>
+          </div>
+        </div>
+        
+        <div *ngIf="uploadSuccess">
+          <i class="bi bi-check-circle fs-1 text-success mb-3"></i>
+          <p>¡Archivo subido correctamente!</p>
+        </div>
+        
+        <div *ngIf="uploadError">
+          <i class="bi bi-exclamation-circle fs-1 text-danger mb-3"></i>
+          <p class="text-danger">{{ errorMessage }}</p>
+          <button class="btn btn-outline-secondary" (click)="selectedFile = null; uploadError = false">Intentar de nuevo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Lista de templates -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h5 class="card-title">Templates Guardados</h5>
+      
+      <div *ngIf="templates.length === 0" class="text-center p-4 text-muted">
+        <i class="bi bi-inbox fs-1 mb-3"></i>
+        <p>No hay templates guardados. Sube tu primer template.</p>
+      </div>
+      
+      <div *ngIf="templates.length > 0" class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Tipo</th>
+              <th>Tamaño</th>
+              <th>Fecha</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let template of templates">
+              <td>
+                <i class="bi" [ngClass]="template.type === 'YAML' ? 'bi-file-earmark-code' : 'bi-file-earmark-zip'"></i>
+                {{ template.name }}
+              </td>
+              <td>{{ template.type }}</td>
+              <td>{{ template.size }}</td>
+              <td>{{ template.date }}</td>
+              <td>
+                <span class="badge" 
+                      [ngClass]="{
+                        'bg-success': template.status === 'Válido',
+                        'bg-warning': template.status === 'Procesando',
+                        'bg-danger': template.status === 'Error'
+                      }">
+                  {{ template.status }}
+                </span>
+              </td>
+              <td>
+                <div class="btn-group">
+                  <button class="btn btn-sm btn-outline-primary" title="Ver detalles" (click)="viewTemplate(template.id)">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-secondary" title="Descargar" (click)="downloadTemplate(template.id)">
+                    <i class="bi bi-download"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger" title="Eliminar" (click)="showDeleteConfirmation(template)">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmación de eliminación -->
+<div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="deleteConfirmationModalLabel">Confirmar eliminación</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de que deseas eliminar el template <strong>{{ templateToDelete?.name }}</strong>?</p>
+        <p class="text-danger"><i class="bi bi-exclamation-triangle"></i> Esta acción no se puede deshacer.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" (click)="confirmDelete()">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Componente visualizador de templates -->
+<app-template-viewer></app-template-viewer>

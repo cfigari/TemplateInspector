@@ -1,0 +1,55 @@
+.sidebar-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-menu-item {
+  padding: 15px 0;
+  text-align: center;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.sidebar-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-menu-item i {
+  font-size: 1.5rem;
+}
+
+.sidebar-menu-item.active {
+  background-color: rgba(255, 153, 0, 0.2);
+  border-left: 3px solid var(--primary-color);
+}
+
+.sidebar-menu-item-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sidebar-title {
+  font-size: 0.7rem;
+  margin-top: 5px;
+  display: block;
+}
+
+/* Estilos para la información de versión */
+.version-info {
+  position: absolute;
+  bottom: 10px;
+  width: 100%;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.7rem;
+  padding: 5px 0;
+}
+
+.build-number {
+  display: block;
+  font-size: 0.6rem;
+  opacity: 0.7;
+}

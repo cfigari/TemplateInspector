@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# Ejecutar el script de actualización de versión
+node update-version.js
+
+# Añadir el archivo de versión actualizado al commit
+git add version.json
+git add src/assets/version.json
+
+# No es necesario hacer un commit adicional ya que estamos en un pre-commit hook
+# y los cambios se incluirán en el commit actual

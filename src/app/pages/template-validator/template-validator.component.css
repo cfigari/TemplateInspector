@@ -1,0 +1,47 @@
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.counter-card {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.counter-card h3 {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--primary-color);
+  margin-bottom: 0;
+}
+
+.counter-card p {
+  font-size: 0.8rem;
+}
+
+pre {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.tab-content {
+  background-color: #fff;
+}
+
+.nav-tabs .nav-link.active {
+  font-weight: 500;
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
+.small pre {
+  max-height: 100px;
+  margin: 0;
+  padding: 5px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}

@@ -1,0 +1,276 @@
+<div class="container-fluid p-4">
+  <h2 class="mb-4">Validador de Templates CloudFormation</h2>
+  
+  <!-- Selector de template -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="card-title">Seleccionar Template</h5>
+      
+      <div class="row">
+        <div class="col-md-8">
+          <select class="form-select" (change)="selectTemplate($event)">
+            <option value="">Selecciona un template...</option>
+            <option *ngFor="let template of templates" [value]="template.id">
+              {{ template.name }} ({{ template.date }})
+            </option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <button class="btn btn-primary w-100" 
+                  [disabled]="!selectedTemplateId || isValidating"
+                  (click)="validateTemplate()">
+            <i class="bi" [ngClass]="isValidating ? 'bi-arrow-repeat spin' : 'bi-check-circle'"></i>
+            {{ isValidating ? 'Validando...' : 'Validar Template' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Resultados de la validación -->
+  <div *ngIf="validationResult" class="card shadow-sm mb-4">
+    <div class="card-header" [ngClass]="validationResult.isValid ? 'bg-success text-white' : 'bg-danger text-white'">
+      <h5 class="mb-0">
+        <i class="bi" [ngClass]="validationResult.isValid ? 'bi-check-circle' : 'bi-exclamation-triangle'"></i>
+        {{ validationResult.isValid ? 'Template Válido' : 'Template Inválido' }}
+      </h5>
+    </div>
+    <div class="card-body">
+      <!-- Errores -->
+      <div *ngIf="validationResult.errors.length > 0" class="alert alert-danger mb-4">
+        <h6>Errores encontrados:</h6>
+        <ul class="mb-0">
+          <li *ngFor="let error of validationResult.errors">{{ error }}</li>
+        </ul>
+      </div>
+      
+      <!-- Resumen -->
+      <div class="row mb-4">
+        <div class="col-md-2 col-sm-4 col-6 mb-2">
+          <div class="card text-center p-2 counter-card">
+            <h3>{{ getResourceCount() }}</h3>
+            <p class="mb-0 small">Recursos</p>
+          </div>
+        </div>
+        <div class="col-md-2 col-sm-4 col-6 mb-2">
+          <div class="card text-center p-2 counter-card">
+            <h3>{{ getParameterCount() }}</h3>
+            <p class="mb-0 small">Parámetros</p>
+          </div>
+        </div>
+        <div class="col-md-2 col-sm-4 col-6 mb-2">
+          <div class="card text-center p-2 counter-card">
+            <h3>{{ getOutputCount() }}</h3>
+            <p class="mb-0 small">Outputs</p>
+          </div>
+        </div>
+        <div class="col-md-2 col-sm-4 col-6 mb-2">
+          <div class="card text-center p-2 counter-card">
+            <h3>{{ getMappingCount() }}</h3>
+            <p class="mb-0 small">Mappings</p>
+          </div>
+        </div>
+        <div class="col-md-2 col-sm-4 col-6 mb-2">
+          <div class="card text-center p-2 counter-card">
+            <h3>{{ getConditionCount() }}</h3>
+            <p class="mb-0 small">Condiciones</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Pestañas para los diferentes componentes -->
+      <ul class="nav nav-tabs" id="templateTabs" role="tablist">
+        <li class="nav-item" role="presentation" *ngIf="getResourceCount() > 0">
+          <button class="nav-link" [class.active]="activeTab === 'resources'" id="resources-tab" data-bs-toggle="tab" data-bs-target="#resources" type="button" role="tab" aria-controls="resources" (click)="setActiveTab('resources')">
+            Recursos
+          </button>
+        </li>
+        <li class="nav-item" role="presentation" *ngIf="getParameterCount() > 0">
+          <button class="nav-link" [class.active]="activeTab === 'parameters'" id="parameters-tab" data-bs-toggle="tab" data-bs-target="#parameters" type="button" role="tab" aria-controls="parameters" (click)="setActiveTab('parameters')">
+            Parámetros
+          </button>
+        </li>
+        <li class="nav-item" role="presentation" *ngIf="getOutputCount() > 0">
+          <button class="nav-link" [class.active]="activeTab === 'outputs'" id="outputs-tab" data-bs-toggle="tab" data-bs-target="#outputs" type="button" role="tab" aria-controls="outputs" (click)="setActiveTab('outputs')">
+            Outputs
+          </button>
+        </li>
+        <li class="nav-item" role="presentation" *ngIf="getMappingCount() > 0">
+          <button class="nav-link" [class.active]="activeTab === 'mappings'" id="mappings-tab" data-bs-toggle="tab" data-bs-target="#mappings" type="button" role="tab" aria-controls="mappings" (click)="setActiveTab('mappings')">
+            Mappings
+          </button>
+        </li>
+        <li class="nav-item" role="presentation" *ngIf="getConditionCount() > 0">
+          <button class="nav-link" [class.active]="activeTab === 'conditions'" id="conditions-tab" data-bs-toggle="tab" data-bs-target="#conditions" type="button" role="tab" aria-controls="conditions" (click)="setActiveTab('conditions')">
+            Condiciones
+          </button>
+        </li>
+      </ul>
+      
+      <div class="tab-content p-3 border border-top-0 rounded-bottom" id="templateTabsContent">
+        <!-- Recursos -->
+        <div class="tab-pane fade" [class.show]="activeTab === 'resources'" [class.active]="activeTab === 'resources'" id="resources" role="tabpanel" aria-labelledby="resources-tab">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>ID Lógico</th>
+                  <th>Tipo</th>
+                  <th>Dependencias</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let resource of validationResult.resources">
+                  <td>{{ resource.logicalId }}</td>
+                  <td>{{ resource.type }}</td>
+                  <td>
+                    <span *ngIf="resource.dependsOn">
+                      <span *ngFor="let dep of resource.dependsOn; let last = last">
+                        {{ dep }}{{ !last ? ', ' : '' }}
+                      </span>
+                    </span>
+                    <span *ngIf="!resource.dependsOn">-</span>
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary" (click)="showResourceDetail(resource)">
+                      <i class="bi bi-eye"></i> Ver Detalle
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Parámetros -->
+        <div class="tab-pane fade" [class.show]="activeTab === 'parameters'" [class.active]="activeTab === 'parameters'" id="parameters" role="tabpanel" aria-labelledby="parameters-tab">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Tipo</th>
+                  <th>Descripción</th>
+                  <th>Valor por defecto</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let param of validationResult.parameters | keyvalue">
+                  <td>{{ param.key }}</td>
+                  <td>{{ param.value.type }}</td>
+                  <td>{{ param.value.description || '-' }}</td>
+                  <td>{{ param.value.default !== undefined ? param.value.default : '-' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Outputs -->
+        <div class="tab-pane fade" [class.show]="activeTab === 'outputs'" [class.active]="activeTab === 'outputs'" id="outputs" role="tabpanel" aria-labelledby="outputs-tab">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Descripción</th>
+                  <th>Exportado como</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let output of validationResult.outputs | keyvalue">
+                  <td>{{ output.key }}</td>
+                  <td>{{ output.value.description || '-' }}</td>
+                  <td>{{ output.value.export?.name || '-' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Mappings -->
+        <div class="tab-pane fade" [class.show]="activeTab === 'mappings'" [class.active]="activeTab === 'mappings'" id="mappings" role="tabpanel" aria-labelledby="mappings-tab">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Contenido</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let mapping of validationResult.mappings | keyvalue">
+                  <td>{{ mapping.key }}</td>
+                  <td>
+                    <pre class="small mb-0">{{ mapping.value | json }}</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Conditions -->
+        <div class="tab-pane fade" [class.show]="activeTab === 'conditions'" [class.active]="activeTab === 'conditions'" id="conditions" role="tabpanel" aria-labelledby="conditions-tab">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Condición</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let condition of validationResult.conditions | keyvalue">
+                  <td>{{ condition.key }}</td>
+                  <td>
+                    <pre class="small mb-0">{{ condition.value.condition | json }}</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para detalles de recursos -->
+<div class="modal fade" id="resourceDetailModal" tabindex="-1" aria-labelledby="resourceDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="resourceDetailModalLabel">
+          <span *ngIf="selectedResource">{{ selectedResource.logicalId }} ({{ selectedResource.type }})</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <h6>Propiedades:</h6>
+          <pre class="bg-light p-3 rounded"><code>{{ resourceCode }}</code></pre>
+        </div>
+        
+        <div *ngIf="selectedResource && selectedResource.metadata" class="mb-3">
+          <h6>Metadata:</h6>
+          <pre class="bg-light p-3 rounded"><code>{{ selectedResource.metadata | json }}</code></pre>
+        </div>
+        
+        <div *ngIf="selectedResource && selectedResource.dependsOn" class="mb-3">
+          <h6>Dependencias:</h6>
+          <ul>
+            <li *ngFor="let dep of selectedResource.dependsOn">{{ dep }}</li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" (click)="copyResourceCode()">
+          <i class="bi bi-clipboard"></i> Copiar Código
+        </button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>

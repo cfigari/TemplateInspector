@@ -1,0 +1,68 @@
+.modal-body {
+  min-height: 500px;
+  max-height: 80vh;
+}
+
+.file-tree-container {
+  border-right: 1px solid #dee2e6;
+  height: 500px;
+  overflow-y: auto;
+  background-color: #f8f9fa;
+}
+
+.file-content-container {
+  height: 500px;
+  overflow-y: auto;
+}
+
+.file-tree-item {
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.file-tree-item-content {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.file-tree-item-content:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.file-tree-item.active .file-tree-item-content {
+  background-color: rgba(255, 153, 0, 0.1);
+  color: var(--primary-color);
+}
+
+.file-tree-item i {
+  margin-right: 8px;
+}
+
+.bi-folder-fill {
+  color: #ffc107;
+}
+
+.bi-file-earmark-code {
+  color: var(--primary-color);
+}
+
+.bi-file-earmark-text {
+  color: #6c757d;
+}
+
+.file-content {
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  padding: 16px;
+  border: 1px solid #dee2e6;
+}
+
+.file-content pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+}
