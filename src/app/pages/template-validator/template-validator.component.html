@@ -7,7 +7,7 @@
       <h5 class="card-title">Seleccionar Template</h5>
       
       <div class="row">
-        <div class="col-md-8">
+        <div class="col-md-12">
           <select class="form-select" (change)="selectTemplate($event)">
             <option value="">Selecciona un template...</option>
             <option *ngFor="let template of templates" [value]="template.id">
@@ -15,16 +15,16 @@
             </option>
           </select>
         </div>
-        <div class="col-md-4">
-          <button class="btn btn-primary w-100" 
-                  [disabled]="!selectedTemplateId || isValidating"
-                  (click)="validateTemplate()">
-            <i class="bi" [ngClass]="isValidating ? 'bi-arrow-repeat spin' : 'bi-check-circle'"></i>
-            {{ isValidating ? 'Validando...' : 'Validar Template' }}
-          </button>
-        </div>
       </div>
     </div>
+  </div>
+  
+  <!-- Indicador de carga -->
+  <div *ngIf="isValidating" class="text-center my-4">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Validando...</span>
+    </div>
+    <p class="mt-2">Validando template...</p>
   </div>
   
   <!-- Resultados de la validación -->
@@ -44,193 +44,158 @@
         </ul>
       </div>
       
-      <!-- Resumen -->
+      <!-- Resumen - Solo mostrar los que tienen contenido -->
       <div class="row mb-4">
-        <div class="col-md-2 col-sm-4 col-6 mb-2">
-          <div class="card text-center p-2 counter-card">
+        <div class="col-md-2 col-sm-4 col-6 mb-2" *ngIf="getResourceCount() > 0">
+          <div class="card text-center p-2 counter-card clickable" 
+               [class.active]="activeComponentType === 'resources'"
+               (click)="toggleComponentView('resources')">
             <h3>{{ getResourceCount() }}</h3>
             <p class="mb-0 small">Recursos</p>
           </div>
         </div>
-        <div class="col-md-2 col-sm-4 col-6 mb-2">
-          <div class="card text-center p-2 counter-card">
+        <div class="col-md-2 col-sm-4 col-6 mb-2" *ngIf="getParameterCount() > 0">
+          <div class="card text-center p-2 counter-card clickable"
+               [class.active]="activeComponentType === 'parameters'"
+               (click)="toggleComponentView('parameters')">
             <h3>{{ getParameterCount() }}</h3>
             <p class="mb-0 small">Parámetros</p>
           </div>
         </div>
-        <div class="col-md-2 col-sm-4 col-6 mb-2">
-          <div class="card text-center p-2 counter-card">
+        <div class="col-md-2 col-sm-4 col-6 mb-2" *ngIf="getOutputCount() > 0">
+          <div class="card text-center p-2 counter-card clickable"
+               [class.active]="activeComponentType === 'outputs'"
+               (click)="toggleComponentView('outputs')">
             <h3>{{ getOutputCount() }}</h3>
             <p class="mb-0 small">Outputs</p>
           </div>
         </div>
-        <div class="col-md-2 col-sm-4 col-6 mb-2">
-          <div class="card text-center p-2 counter-card">
+        <div class="col-md-2 col-sm-4 col-6 mb-2" *ngIf="getMappingCount() > 0">
+          <div class="card text-center p-2 counter-card clickable"
+               [class.active]="activeComponentType === 'mappings'"
+               (click)="toggleComponentView('mappings')">
             <h3>{{ getMappingCount() }}</h3>
             <p class="mb-0 small">Mappings</p>
           </div>
         </div>
-        <div class="col-md-2 col-sm-4 col-6 mb-2">
-          <div class="card text-center p-2 counter-card">
+        <div class="col-md-2 col-sm-4 col-6 mb-2" *ngIf="getConditionCount() > 0">
+          <div class="card text-center p-2 counter-card clickable"
+               [class.active]="activeComponentType === 'conditions'"
+               (click)="toggleComponentView('conditions')">
             <h3>{{ getConditionCount() }}</h3>
             <p class="mb-0 small">Condiciones</p>
           </div>
         </div>
       </div>
       
-      <!-- Pestañas para los diferentes componentes -->
-      <ul class="nav nav-tabs" id="templateTabs" role="tablist">
-        <li class="nav-item" role="presentation" *ngIf="getResourceCount() > 0">
-          <button class="nav-link" [class.active]="activeTab === 'resources'" id="resources-tab" data-bs-toggle="tab" data-bs-target="#resources" type="button" role="tab" aria-controls="resources" (click)="setActiveTab('resources')">
-            Recursos
-          </button>
-        </li>
-        <li class="nav-item" role="presentation" *ngIf="getParameterCount() > 0">
-          <button class="nav-link" [class.active]="activeTab === 'parameters'" id="parameters-tab" data-bs-toggle="tab" data-bs-target="#parameters" type="button" role="tab" aria-controls="parameters" (click)="setActiveTab('parameters')">
-            Parámetros
-          </button>
-        </li>
-        <li class="nav-item" role="presentation" *ngIf="getOutputCount() > 0">
-          <button class="nav-link" [class.active]="activeTab === 'outputs'" id="outputs-tab" data-bs-toggle="tab" data-bs-target="#outputs" type="button" role="tab" aria-controls="outputs" (click)="setActiveTab('outputs')">
-            Outputs
-          </button>
-        </li>
-        <li class="nav-item" role="presentation" *ngIf="getMappingCount() > 0">
-          <button class="nav-link" [class.active]="activeTab === 'mappings'" id="mappings-tab" data-bs-toggle="tab" data-bs-target="#mappings" type="button" role="tab" aria-controls="mappings" (click)="setActiveTab('mappings')">
-            Mappings
-          </button>
-        </li>
-        <li class="nav-item" role="presentation" *ngIf="getConditionCount() > 0">
-          <button class="nav-link" [class.active]="activeTab === 'conditions'" id="conditions-tab" data-bs-toggle="tab" data-bs-target="#conditions" type="button" role="tab" aria-controls="conditions" (click)="setActiveTab('conditions')">
-            Condiciones
-          </button>
-        </li>
-      </ul>
-      
-      <div class="tab-content p-3 border border-top-0 rounded-bottom" id="templateTabsContent">
+      <!-- Tablas de componentes -->
+      <div *ngIf="activeComponentType" class="component-details mt-4">
+        <h5 class="mb-3">{{ getComponentTitle() }}</h5>
+        
         <!-- Recursos -->
-        <div class="tab-pane fade" [class.show]="activeTab === 'resources'" [class.active]="activeTab === 'resources'" id="resources" role="tabpanel" aria-labelledby="resources-tab">
-          <div class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>ID Lógico</th>
-                  <th>Tipo</th>
-                  <th>Dependencias</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let resource of validationResult.resources">
-                  <td>{{ resource.logicalId }}</td>
-                  <td>{{ resource.type }}</td>
-                  <td>
-                    <span *ngIf="resource.dependsOn">
-                      <span *ngFor="let dep of resource.dependsOn; let last = last">
-                        {{ dep }}{{ !last ? ', ' : '' }}
-                      </span>
-                    </span>
-                    <span *ngIf="!resource.dependsOn">-</span>
-                  </td>
-                  <td>
-                    <button class="btn btn-sm btn-outline-primary" (click)="showResourceDetail(resource)">
-                      <i class="bi bi-eye"></i> Ver Detalle
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div *ngIf="activeComponentType === 'resources'" class="table-responsive">
+          <table class="table table-hover table-sm">
+            <thead>
+              <tr>
+                <th>ID Lógico</th>
+                <th>Tipo</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let resource of validationResult.resources">
+                <td>{{ resource.logicalId }}</td>
+                <td>{{ resource.type }}</td>
+                <td>
+                  <button class="btn btn-sm btn-outline-primary" title="Ver Detalle" (click)="showResourceDetail(resource)">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         
         <!-- Parámetros -->
-        <div class="tab-pane fade" [class.show]="activeTab === 'parameters'" [class.active]="activeTab === 'parameters'" id="parameters" role="tabpanel" aria-labelledby="parameters-tab">
-          <div class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Tipo</th>
-                  <th>Descripción</th>
-                  <th>Valor por defecto</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let param of validationResult.parameters | keyvalue">
-                  <td>{{ param.key }}</td>
-                  <td>{{ param.value.type }}</td>
-                  <td>{{ param.value.description || '-' }}</td>
-                  <td>{{ param.value.default !== undefined ? param.value.default : '-' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div *ngIf="activeComponentType === 'parameters'" class="table-responsive">
+          <table class="table table-hover table-sm">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>Descripción</th>
+                <th>Valor por defecto</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let param of validationResult.parameters | keyvalue">
+                <td>{{ param.key }}</td>
+                <td>{{ param.value.type }}</td>
+                <td>{{ param.value.description || '-' }}</td>
+                <td>{{ param.value.default !== undefined ? param.value.default : '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         
         <!-- Outputs -->
-        <div class="tab-pane fade" [class.show]="activeTab === 'outputs'" [class.active]="activeTab === 'outputs'" id="outputs" role="tabpanel" aria-labelledby="outputs-tab">
-          <div class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Descripción</th>
-                  <th>Exportado como</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let output of validationResult.outputs | keyvalue">
-                  <td>{{ output.key }}</td>
-                  <td>{{ output.value.description || '-' }}</td>
-                  <td>{{ output.value.export?.name || '-' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div *ngIf="activeComponentType === 'outputs'" class="table-responsive">
+          <table class="table table-hover table-sm">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Exportado como</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let output of validationResult.outputs | keyvalue">
+                <td>{{ output.key }}</td>
+                <td>{{ output.value.description || '-' }}</td>
+                <td>{{ output.value.export?.name || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         
         <!-- Mappings -->
-        <div class="tab-pane fade" [class.show]="activeTab === 'mappings'" [class.active]="activeTab === 'mappings'" id="mappings" role="tabpanel" aria-labelledby="mappings-tab">
-          <div class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Contenido</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let mapping of validationResult.mappings | keyvalue">
-                  <td>{{ mapping.key }}</td>
-                  <td>
-                    <pre class="small mb-0">{{ mapping.value | json }}</pre>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div *ngIf="activeComponentType === 'mappings'" class="table-responsive">
+          <table class="table table-hover table-sm">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Contenido</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let mapping of validationResult.mappings | keyvalue">
+                <td>{{ mapping.key }}</td>
+                <td>
+                  <pre class="small mb-0">{{ mapping.value | json }}</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         
         <!-- Conditions -->
-        <div class="tab-pane fade" [class.show]="activeTab === 'conditions'" [class.active]="activeTab === 'conditions'" id="conditions" role="tabpanel" aria-labelledby="conditions-tab">
-          <div class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Condición</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let condition of validationResult.conditions | keyvalue">
-                  <td>{{ condition.key }}</td>
-                  <td>
-                    <pre class="small mb-0">{{ condition.value.condition | json }}</pre>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div *ngIf="activeComponentType === 'conditions'" class="table-responsive">
+          <table class="table table-hover table-sm">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Condición</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let condition of validationResult.conditions | keyvalue">
+                <td>{{ condition.key }}</td>
+                <td>
+                  <pre class="small mb-0">{{ condition.value.condition | json }}</pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

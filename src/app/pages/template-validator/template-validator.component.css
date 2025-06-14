@@ -11,6 +11,22 @@
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
+.counter-card.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.counter-card.clickable:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  background-color: #f8f9fa;
+}
+
+.counter-card.active {
+  border-color: var(--primary-color);
+  background-color: rgba(255, 153, 0, 0.1);
+}
+
 .counter-card h3 {
   font-size: 1.5rem;
   font-weight: 500;
@@ -27,14 +43,14 @@ pre {
   overflow-y: auto;
 }
 
-.tab-content {
-  background-color: #fff;
+.component-details {
+  border-top: 1px solid #dee2e6;
+  padding-top: 1rem;
 }
 
-.nav-tabs .nav-link.active {
-  font-weight: 500;
-  color: var(--primary-color);
-  border-bottom-color: var(--primary-color);
+.table-sm td, .table-sm th {
+  padding: 0.3rem;
+  font-size: 0.9rem;
 }
 
 .small pre {

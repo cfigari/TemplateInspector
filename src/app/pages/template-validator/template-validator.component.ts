@@ -18,9 +18,9 @@ export class TemplateValidatorComponent implements OnInit {
   isValidating = false;
   selectedResource: CloudFormationResource | null = null;
   resourceCode: string = '';
-  activeTab: string = 'resources';
+  activeComponentType: string = '';
   
-  // Para el modal de detalle
+  // Para los modales
   detailModal: any;
 
   constructor(
@@ -31,11 +31,14 @@ export class TemplateValidatorComponent implements OnInit {
   ngOnInit(): void {
     this.loadTemplates();
     
-    // Inicializar el modal cuando el componente se carga
+    // Inicializar los modales cuando el componente se carga
     setTimeout(() => {
-      const modalElement = document.getElementById('resourceDetailModal');
-      if (modalElement && typeof window !== 'undefined' && (window as any).bootstrap) {
-        this.detailModal = new (window as any).bootstrap.Modal(modalElement);
+      const resourceModalElement = document.getElementById('resourceDetailModal');
+      
+      if (typeof window !== 'undefined' && (window as any).bootstrap) {
+        if (resourceModalElement) {
+          this.detailModal = new (window as any).bootstrap.Modal(resourceModalElement);
+        }
       }
     }, 500);
   }
@@ -44,6 +47,7 @@ export class TemplateValidatorComponent implements OnInit {
     this.templateStorage.getAllTemplates().subscribe(templates => {
       // Filtrar solo los templates YAML
       this.templates = templates.filter(t => t.type === 'YAML');
+      console.log('Templates cargados:', this.templates);
     });
   }
 
@@ -51,9 +55,15 @@ export class TemplateValidatorComponent implements OnInit {
     const selectElement = event.target as HTMLSelectElement;
     const templateId = parseInt(selectElement.value, 10);
     
+    console.log('Template seleccionado ID:', templateId);
+    
     if (!isNaN(templateId)) {
       this.selectedTemplateId = templateId;
       this.validationResult = null;
+      this.activeComponentType = '';
+      
+      // Validar automáticamente al seleccionar
+      this.validateTemplate();
     } else {
       this.selectedTemplateId = null;
     }
@@ -62,13 +72,19 @@ export class TemplateValidatorComponent implements OnInit {
   validateTemplate(): void {
     if (!this.selectedTemplateId) return;
     
+    console.log('Iniciando validación del template ID:', this.selectedTemplateId);
     this.isValidating = true;
     
     this.templateStorage.getTemplateById(this.selectedTemplateId).subscribe({
       next: (template) => {
+        console.log('Template obtenido:', template);
+        
         if (template && typeof template.content === 'string') {
+          console.log('Contenido del template (primeros 100 caracteres):', template.content.substring(0, 100));
+          
           // Validar el template
           this.validationResult = this.validator.validateTemplate(template.content);
+          console.log('Resultado de validación:', this.validationResult);
           
           // Actualizar el estado del template en la base de datos
           if (template.id !== undefined) {
@@ -79,8 +95,12 @@ export class TemplateValidatorComponent implements OnInit {
             });
           }
           
-          // Establecer la pestaña activa inicial
-          this.setInitialActiveTab();
+          // Mostrar recursos por defecto si hay
+          if (this.getResourceCount() > 0) {
+            this.activeComponentType = 'resources';
+          }
+        } else {
+          console.error('El template no tiene contenido o no es una cadena:', template);
         }
         this.isValidating = false;
       },
@@ -91,32 +111,37 @@ export class TemplateValidatorComponent implements OnInit {
     });
   }
 
-  setInitialActiveTab(): void {
-    if (this.getResourceCount() > 0) {
-      this.activeTab = 'resources';
-    } else if (this.getParameterCount() > 0) {
-      this.activeTab = 'parameters';
-    } else if (this.getOutputCount() > 0) {
-      this.activeTab = 'outputs';
-    } else if (this.getMappingCount() > 0) {
-      this.activeTab = 'mappings';
-    } else if (this.getConditionCount() > 0) {
-      this.activeTab = 'conditions';
+  toggleComponentView(componentType: string): void {
+    if (this.activeComponentType === componentType) {
+      // Si ya está activo, lo desactivamos
+      this.activeComponentType = '';
+    } else {
+      // Si no está activo, lo activamos
+      this.activeComponentType = componentType;
     }
   }
 
-  setActiveTab(tabName: string): void {
-    this.activeTab = tabName;
+  getComponentTitle(): string {
+    switch (this.activeComponentType) {
+      case 'resources': return 'Recursos';
+      case 'parameters': return 'Parámetros';
+      case 'outputs': return 'Outputs';
+      case 'mappings': return 'Mappings';
+      case 'conditions': return 'Condiciones';
+      default: return '';
+    }
   }
 
   showResourceDetail(resource: CloudFormationResource): void {
+    console.log('Mostrando detalle del recurso:', resource);
     this.selectedResource = resource;
     this.resourceCode = JSON.stringify(resource.properties, null, 2);
     
+    // Mostrar el modal de detalles del recurso
     if (this.detailModal) {
       this.detailModal.show();
     } else {
-      alert('No se pudo inicializar el modal. Detalles del recurso: ' + resource.logicalId);
+      console.error('No se pudo inicializar el modal de detalles');
     }
   }
 
