@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { TemplateParserService } from './template-parser.service';
 
 export interface CloudFormationResource {
   type: string;
@@ -13,7 +14,7 @@ export interface CloudFormationParameter {
   type: string;
   description?: string;
   default?: any;
-  allowedValues?: any[];
+  allowedValues?: string[];
   constraintDescription?: string;
   minValue?: number;
   maxValue?: number;
@@ -21,6 +22,7 @@ export interface CloudFormationParameter {
   maxLength?: number;
   allowedPattern?: string;
   noEcho?: boolean;
+  rawContent?: string;
 }
 
 export interface CloudFormationOutput {
@@ -42,6 +44,10 @@ export interface CloudFormationCondition {
   condition: any;
 }
 
+export interface CloudFormationGlobal {
+  [key: string]: any;
+}
+
 export interface ValidationResult {
   isValid: boolean;
   errors: string[];
@@ -50,6 +56,7 @@ export interface ValidationResult {
   outputs: { [key: string]: CloudFormationOutput };
   mappings: { [key: string]: CloudFormationMapping };
   conditions: { [key: string]: CloudFormationCondition };
+  globals?: { [key: string]: CloudFormationGlobal };
 }
 
 @Injectable({
@@ -57,7 +64,7 @@ export interface ValidationResult {
 })
 export class TemplateValidatorService {
 
-  constructor() { }
+  constructor(private parser: TemplateParserService) { }
 
   validateTemplate(templateContent: string): ValidationResult {
     console.log('Iniciando validación del template');
@@ -69,131 +76,19 @@ export class TemplateValidatorService {
       parameters: {},
       outputs: {},
       mappings: {},
-      conditions: {}
+      conditions: {},
+      globals: {}
     };
 
     try {
-      // Solución alternativa: Usar el parseo anterior pero reorganizar los datos
-      let template: any;
+      // Parsear el template usando el servicio de parseo
+      const parsedTemplate = this.parser.parseTemplate(templateContent);
+      console.log('Template parseado:', parsedTemplate);
       
-      try {
-        // Intentar parsear como JSON primero
-        console.log('Intentando parsear como JSON');
-        template = JSON.parse(templateContent);
-        console.log('Parseado como JSON exitoso');
-      } catch (e) {
-        // Si falla, intentar parsear como YAML
-        console.log('Parseado JSON falló, intentando como YAML');
-        template = this.parseYaml(templateContent);
-        console.log('Parseado como YAML exitoso');
-      }
-
-      console.log('Template parseado:', template);
-      
-      // Identificar las secciones principales
-      const mainSections = ['Resources', 'Parameters', 'Outputs', 'Mappings', 'Conditions'];
-      const organizedTemplate: any = {};
-      
-      // Extraer propiedades de nivel superior conocidas
-      if (template.AWSTemplateFormatVersion) {
-        organizedTemplate.AWSTemplateFormatVersion = template.AWSTemplateFormatVersion;
-      }
-      if (template.Transform) {
-        organizedTemplate.Transform = template.Transform;
-      }
-      if (template.Description) {
-        organizedTemplate.Description = template.Description;
-      }
-      
-      // Inicializar secciones principales
-      mainSections.forEach(section => {
-        organizedTemplate[section] = {};
-      });
-      
-      // Identificar recursos por convención de nombres
-      // Los recursos típicamente tienen Type y Properties
-      for (const key in template) {
-        if (mainSections.includes(key)) {
-          // Ya es una sección principal
-          organizedTemplate[key] = template[key];
-        } else if (template[key] && typeof template[key] === 'object') {
-          // Verificar si parece un recurso
-          if (template[key].Type && template[key].Type.startsWith('AWS::')) {
-            if (!organizedTemplate.Resources) {
-              organizedTemplate.Resources = {};
-            }
-            organizedTemplate.Resources[key] = template[key];
-          }
-        }
-      }
-      
-      // Buscar recursos adicionales basados en patrones comunes
-      for (const key in template) {
-        if (!mainSections.includes(key) && 
-            !['AWSTemplateFormatVersion', 'Transform', 'Description'].includes(key) &&
-            !organizedTemplate.Resources[key]) {
-          
-          // Verificar si el nombre sigue patrones comunes de recursos
-          const isLikelyResource = /^[A-Z][a-zA-Z0-9]*$/.test(key) || // PascalCase
-                                  key.includes('Lambda') ||
-                                  key.includes('Role') ||
-                                  key.includes('Policy') ||
-                                  key.includes('Function') ||
-                                  key.includes('Bucket') ||
-                                  key.includes('Table') ||
-                                  key.includes('Queue') ||
-                                  key.includes('Topic');
-          
-          if (isLikelyResource) {
-            // Asumir que es un recurso
-            if (!organizedTemplate.Resources) {
-              organizedTemplate.Resources = {};
-            }
-            
-            // Si no tiene Type, intentar inferirlo
-            if (!template[key].Type) {
-              let inferredType = 'AWS::CloudFormation::CustomResource';
-              
-              if (key.includes('Lambda') || key.includes('Function')) {
-                inferredType = 'AWS::Lambda::Function';
-              } else if (key.includes('Role')) {
-                inferredType = 'AWS::IAM::Role';
-              } else if (key.includes('Policy')) {
-                inferredType = 'AWS::IAM::Policy';
-              } else if (key.includes('Bucket')) {
-                inferredType = 'AWS::S3::Bucket';
-              } else if (key.includes('Table')) {
-                inferredType = 'AWS::DynamoDB::Table';
-              } else if (key.includes('Queue')) {
-                inferredType = 'AWS::SQS::Queue';
-              } else if (key.includes('Topic')) {
-                inferredType = 'AWS::SNS::Topic';
-              }
-              
-              organizedTemplate.Resources[key] = {
-                Type: inferredType,
-                Properties: template[key]
-              };
-            } else {
-              organizedTemplate.Resources[key] = template[key];
-            }
-          }
-        }
-      }
-      
-      console.log('Template organizado:', organizedTemplate);
-
-      // Verificar si es un template de CloudFormation
-      if (!organizedTemplate.Resources || Object.keys(organizedTemplate.Resources).length === 0) {
-        console.log('No se encontró la sección Resources o está vacía');
-        result.errors.push('No se encontró la sección "Resources" en el template.');
-        return result;
-      }
-
       // Validar formato AWSTemplateFormatVersion
-      if (organizedTemplate.AWSTemplateFormatVersion) {
+      if (parsedTemplate['AWSTemplateFormatVersion']) {
         // Eliminar comillas si existen
-        const version = organizedTemplate.AWSTemplateFormatVersion.replace(/['"]/g, '');
+        const version = parsedTemplate['AWSTemplateFormatVersion'].replace(/['\"]/g, '');
         if (version !== '2010-09-09') {
           console.log('Versión no soportada:', version);
           result.errors.push(`Versión de template no soportada: ${version}`);
@@ -201,92 +96,194 @@ export class TemplateValidatorService {
       }
 
       // Procesar recursos
-      console.log('Procesando recursos...', Object.keys(organizedTemplate.Resources).length);
-      for (const logicalId in organizedTemplate.Resources) {
-        const resource = organizedTemplate.Resources[logicalId];
-        
-        if (!resource.Type) {
-          result.errors.push(`El recurso "${logicalId}" no tiene un tipo definido.`);
-          continue;
+      if (parsedTemplate['Resources']) {
+        console.log('Procesando recursos...', Object.keys(parsedTemplate['Resources']).length);
+        for (const logicalId in parsedTemplate['Resources']) {
+          const resourceContent = parsedTemplate['Resources'][logicalId].content || '';
+          let resourceType = 'Unknown';
+          
+          // Extraer el tipo del recurso
+          const typeMatch = resourceContent.match(/Type:\s*([^\s\n]+)/);
+          if (typeMatch && typeMatch[1]) {
+            resourceType = typeMatch[1];
+          }
+          
+          result.resources.push({
+            logicalId,
+            type: resourceType,
+            properties: { content: resourceContent }
+          });
         }
-
-        result.resources.push({
-          logicalId,
-          type: resource.Type,
-          properties: resource.Properties || {},
-          dependsOn: resource.DependsOn,
-          metadata: resource.Metadata,
-          condition: resource.Condition
-        });
+        console.log(`Recursos procesados: ${result.resources.length}`);
       }
-      console.log(`Recursos procesados: ${result.resources.length}`);
 
       // Procesar parámetros
-      console.log('Procesando parámetros...', organizedTemplate.Parameters ? Object.keys(organizedTemplate.Parameters).length : 0);
-      if (organizedTemplate.Parameters) {
-        for (const paramName in organizedTemplate.Parameters) {
-          const param = organizedTemplate.Parameters[paramName];
+      if (parsedTemplate['Parameters']) {
+        console.log('Procesando parámetros...', Object.keys(parsedTemplate['Parameters']).length);
+        for (const paramName in parsedTemplate['Parameters']) {
+          const paramContent = parsedTemplate['Parameters'][paramName].content || '';
+          let paramType = 'String'; // Tipo por defecto
+          let paramDesc = '';
+          let paramDefault = undefined;
           
-          if (!param.Type) {
-            result.errors.push(`El parámetro "${paramName}" no tiene un tipo definido.`);
-            continue;
+          // Extraer el tipo del parámetro
+          const typeMatch = paramContent.match(/Type:\s*([^\s\n]+)/);
+          if (typeMatch && typeMatch[1]) {
+            paramType = typeMatch[1].trim();
           }
-
+          
+          // Extraer la descripción
+          const descMatch = paramContent.match(/Description:\s*(.+?)(\n|$)/);
+          if (descMatch && descMatch[1]) {
+            paramDesc = descMatch[1].trim();
+          }
+          
+          // Extraer el valor por defecto
+          const defaultMatch = paramContent.match(/Default:\s*(.+?)(\n|$)/);
+          if (defaultMatch && defaultMatch[1]) {
+            paramDefault = defaultMatch[1].trim();
+          }
+          
+          // Extraer valores permitidos (AllowedValues)
+          const paramAllowedValues: string[] = [];
+          if (paramContent.includes('AllowedValues:')) {
+            const allowedValuesRegex = /AllowedValues:[\s\S]*?(?:- (.+?)(?:\n|$))/g;
+            let allowedMatch;
+            while ((allowedMatch = allowedValuesRegex.exec(paramContent)) !== null) {
+              if (allowedMatch[1]) {
+                paramAllowedValues.push(allowedMatch[1].trim());
+              }
+            }
+          }
+          
+          // Extraer otros atributos
+          let minValue = undefined;
+          let maxValue = undefined;
+          let minLength = undefined;
+          let maxLength = undefined;
+          let allowedPattern = undefined;
+          let noEcho = undefined;
+          let constraintDescription = undefined;
+          
+          const minValueMatch = paramContent.match(/MinValue:\s*(.+?)(\n|$)/);
+          if (minValueMatch && minValueMatch[1]) {
+            minValue = Number(minValueMatch[1].trim());
+          }
+          
+          const maxValueMatch = paramContent.match(/MaxValue:\s*(.+?)(\n|$)/);
+          if (maxValueMatch && maxValueMatch[1]) {
+            maxValue = Number(maxValueMatch[1].trim());
+          }
+          
+          const minLengthMatch = paramContent.match(/MinLength:\s*(.+?)(\n|$)/);
+          if (minLengthMatch && minLengthMatch[1]) {
+            minLength = Number(minLengthMatch[1].trim());
+          }
+          
+          const maxLengthMatch = paramContent.match(/MaxLength:\s*(.+?)(\n|$)/);
+          if (maxLengthMatch && maxLengthMatch[1]) {
+            maxLength = Number(maxLengthMatch[1].trim());
+          }
+          
+          const allowedPatternMatch = paramContent.match(/AllowedPattern:\s*(.+?)(\n|$)/);
+          if (allowedPatternMatch && allowedPatternMatch[1]) {
+            allowedPattern = allowedPatternMatch[1].trim();
+          }
+          
+          const noEchoMatch = paramContent.match(/NoEcho:\s*(.+?)(\n|$)/);
+          if (noEchoMatch && noEchoMatch[1]) {
+            noEcho = noEchoMatch[1].trim().toLowerCase() === 'true';
+          }
+          
+          const constraintDescMatch = paramContent.match(/ConstraintDescription:\s*(.+?)(\n|$)/);
+          if (constraintDescMatch && constraintDescMatch[1]) {
+            constraintDescription = constraintDescMatch[1].trim();
+          }
+          
           result.parameters[paramName] = {
-            type: param.Type,
-            description: param.Description,
-            default: param.Default,
-            allowedValues: param.AllowedValues,
-            constraintDescription: param.ConstraintDescription,
-            minValue: param.MinValue,
-            maxValue: param.MaxValue,
-            minLength: param.MinLength,
-            maxLength: param.MaxLength,
-            allowedPattern: param.AllowedPattern,
-            noEcho: param.NoEcho
+            type: paramType,
+            description: paramDesc,
+            default: paramDefault,
+            allowedValues: paramAllowedValues,
+            minValue: minValue,
+            maxValue: maxValue,
+            minLength: minLength,
+            maxLength: maxLength,
+            allowedPattern: allowedPattern,
+            noEcho: noEcho,
+            constraintDescription: constraintDescription,
+            rawContent: paramContent // Guardar el contenido completo para extracción
           };
         }
+        console.log(`Parámetros procesados: ${Object.keys(result.parameters).length}`);
       }
-      console.log(`Parámetros procesados: ${Object.keys(result.parameters).length}`);
 
       // Procesar outputs
-      console.log('Procesando outputs...', organizedTemplate.Outputs ? Object.keys(organizedTemplate.Outputs).length : 0);
-      if (organizedTemplate.Outputs) {
-        for (const outputName in organizedTemplate.Outputs) {
-          const output = organizedTemplate.Outputs[outputName];
+      if (parsedTemplate['Outputs']) {
+        console.log('Procesando outputs...', Object.keys(parsedTemplate['Outputs']).length);
+        for (const outputName in parsedTemplate['Outputs']) {
+          const outputContent = parsedTemplate['Outputs'][outputName].content || '';
+          let outputValue = 'Unknown';
+          let outputDesc = '';
+          let outputExport = undefined;
           
-          if (output.Value === undefined) {
-            result.errors.push(`El output "${outputName}" no tiene un valor definido.`);
-            continue;
+          // Extraer el valor
+          const valueMatch = outputContent.match(/Value:\s*(.+?)(\n|$)/);
+          if (valueMatch && valueMatch[1]) {
+            outputValue = valueMatch[1].trim();
           }
-
+          
+          // Extraer la descripción
+          const descMatch = outputContent.match(/Description:\s*(.+?)(\n|$)/);
+          if (descMatch && descMatch[1]) {
+            outputDesc = descMatch[1].trim();
+          }
+          
+          // Extraer la exportación
+          const exportMatch = outputContent.match(/Export:[\s\S]*?Name:\s*(.+?)(\n|$)/);
+          if (exportMatch && exportMatch[1]) {
+            outputExport = { name: exportMatch[1].trim() };
+          }
+          
           result.outputs[outputName] = {
-            description: output.Description,
-            value: output.Value,
-            export: output.Export,
-            condition: output.Condition
+            value: outputValue,
+            description: outputDesc,
+            export: outputExport
           };
         }
+        console.log(`Outputs procesados: ${Object.keys(result.outputs).length}`);
       }
-      console.log(`Outputs procesados: ${Object.keys(result.outputs).length}`);
 
       // Procesar mappings
-      console.log('Procesando mappings...', organizedTemplate.Mappings ? Object.keys(organizedTemplate.Mappings).length : 0);
-      if (organizedTemplate.Mappings) {
-        result.mappings = organizedTemplate.Mappings;
-      }
-      console.log(`Mappings procesados: ${Object.keys(result.mappings).length}`);
-
-      // Procesar condiciones
-      console.log('Procesando condiciones...', organizedTemplate.Conditions ? Object.keys(organizedTemplate.Conditions).length : 0);
-      if (organizedTemplate.Conditions) {
-        for (const condName in organizedTemplate.Conditions) {
-          result.conditions[condName] = {
-            condition: organizedTemplate.Conditions[condName]
+      if (parsedTemplate['Mappings']) {
+        console.log('Procesando mappings...', Object.keys(parsedTemplate['Mappings']).length);
+        for (const mappingName in parsedTemplate['Mappings']) {
+          result.mappings[mappingName] = {
+            content: parsedTemplate['Mappings'][mappingName].content || ''
           };
         }
+        console.log(`Mappings procesados: ${Object.keys(result.mappings).length}`);
       }
-      console.log(`Condiciones procesadas: ${Object.keys(result.conditions).length}`);
+
+      // Procesar condiciones
+      if (parsedTemplate['Conditions']) {
+        console.log('Procesando condiciones...', Object.keys(parsedTemplate['Conditions']).length);
+        for (const condName in parsedTemplate['Conditions']) {
+          result.conditions[condName] = {
+            condition: parsedTemplate['Conditions'][condName].content || ''
+          };
+        }
+        console.log(`Condiciones procesadas: ${Object.keys(result.conditions).length}`);
+      }
+      
+      // Procesar globals
+      if (parsedTemplate['Globals']) {
+        console.log('Procesando globals...', Object.keys(parsedTemplate['Globals']).length);
+        for (const globalName in parsedTemplate['Globals']) {
+          result.globals![globalName] = parsedTemplate['Globals'][globalName].content || '';
+        }
+        console.log(`Globals procesados: ${Object.keys(result.globals || {}).length}`);
+      }
 
       // Si llegamos hasta aquí sin errores críticos, el template es válido
       result.isValid = result.errors.length === 0;
@@ -296,59 +293,6 @@ export class TemplateValidatorService {
     } catch (error) {
       console.error('Error durante la validación:', error);
       result.errors.push(`Error al validar el template: ${error}`);
-      return result;
-    }
-  }
-
-  // Implementación básica de un parser YAML
-  private parseYaml(yamlString: string): any {
-    console.log('Parseando YAML...');
-    try {
-      // Eliminar comentarios
-      const lines = yamlString.split('\n').map(line => {
-        const commentIndex = line.indexOf('#');
-        return commentIndex >= 0 ? line.substring(0, commentIndex) : line;
-      });
-      
-      // Convertir a JSON
-      const jsonString = lines.join('\n')
-        .replace(/(\w+):/g, '"$1":')  // Convertir claves a formato JSON
-        .replace(/: (\w+)/g, ': "$1"')  // Convertir valores simples a strings
-        .replace(/'/g, '"');  // Reemplazar comillas simples por dobles
-      
-      console.log('YAML convertido a JSON string, intentando parsear...');
-      return JSON.parse(jsonString);
-    } catch (e) {
-      console.log('Primer intento de parseo YAML falló, intentando enfoque alternativo');
-      // Si falla, intentar un enfoque más simple
-      const result: any = {};
-      let currentSection: string | null = null;
-      
-      yamlString.split('\n').forEach(line => {
-        line = line.trim();
-        if (!line || line.startsWith('#')) return;
-        
-        if (!line.startsWith(' ') && line.includes(':')) {
-          // Es una sección de nivel superior
-          const [key, value] = line.split(':');
-          currentSection = key.trim();
-          result[currentSection] = value ? value.trim() : {};
-        } else if (currentSection && line.includes(':')) {
-          // Es una subsección
-          if (typeof result[currentSection] !== 'object') {
-            result[currentSection] = {};
-          }
-          
-          const indent = line.search(/\S/);
-          const [key, value] = line.trim().split(':');
-          
-          if (key && value) {
-            result[currentSection][key.trim()] = value.trim();
-          }
-        }
-      });
-      
-      console.log('Enfoque alternativo de parseo YAML completado');
       return result;
     }
   }

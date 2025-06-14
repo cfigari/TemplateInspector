@@ -2,12 +2,15 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TemplateStorageService, Template } from '../../services/template-storage.service';
-import { TemplateValidatorService, ValidationResult, CloudFormationResource } from '../../services/template-validator.service';
+import { TemplateValidatorService, ValidationResult, CloudFormationResource, CloudFormationParameter } from '../../services/template-validator.service';
+import { TemplateExtractorService } from '../../services/template-extractor.service';
+import { ExtractBlockComponent } from '../../shared/extract-block/extract-block.component';
+import { TemplateHierarchyService, TemplateNode } from '../../services/template-hierarchy.service';
 
 @Component({
   selector: 'app-template-validator',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ExtractBlockComponent],
   templateUrl: './template-validator.component.html',
   styleUrl: './template-validator.component.css'
 })
@@ -18,14 +21,24 @@ export class TemplateValidatorComponent implements OnInit {
   isValidating = false;
   selectedResource: CloudFormationResource | null = null;
   resourceCode: string = '';
+  selectedParameterName: string = '';
+  selectedParameter: CloudFormationParameter | null = null;
+  parameterCode: string = '';
   activeComponentType: string = '';
+  templateContent: string = '';
+  
+  // Secciones de nivel superior de CloudFormation
+  cfnSections = ['resources', 'parameters', 'mappings', 'outputs', 'conditions', 'globals'];
   
   // Para los modales
   detailModal: any;
+  parameterModal: any;
 
   constructor(
     private templateStorage: TemplateStorageService,
-    private validator: TemplateValidatorService
+    private validator: TemplateValidatorService,
+    private extractor: TemplateExtractorService,
+    private hierarchy: TemplateHierarchyService
   ) {}
 
   ngOnInit(): void {
@@ -34,10 +47,14 @@ export class TemplateValidatorComponent implements OnInit {
     // Inicializar los modales cuando el componente se carga
     setTimeout(() => {
       const resourceModalElement = document.getElementById('resourceDetailModal');
+      const parameterModalElement = document.getElementById('parameterDetailModal');
       
       if (typeof window !== 'undefined' && (window as any).bootstrap) {
         if (resourceModalElement) {
           this.detailModal = new (window as any).bootstrap.Modal(resourceModalElement);
+        }
+        if (parameterModalElement) {
+          this.parameterModal = new (window as any).bootstrap.Modal(parameterModalElement);
         }
       }
     }, 500);
@@ -82,6 +99,9 @@ export class TemplateValidatorComponent implements OnInit {
         if (template && typeof template.content === 'string') {
           console.log('Contenido del template (primeros 100 caracteres):', template.content.substring(0, 100));
           
+          // Guardar el contenido del template
+          this.templateContent = template.content;
+          
           // Validar el template
           this.validationResult = this.validator.validateTemplate(template.content);
           console.log('Resultado de validación:', this.validationResult);
@@ -95,10 +115,8 @@ export class TemplateValidatorComponent implements OnInit {
             });
           }
           
-          // Mostrar recursos por defecto si hay
-          if (this.getResourceCount() > 0) {
-            this.activeComponentType = 'resources';
-          }
+          // Mostrar la primera sección disponible por defecto
+          this.setDefaultActiveSection();
         } else {
           console.error('El template no tiene contenido o no es una cadena:', template);
         }
@@ -121,21 +139,39 @@ export class TemplateValidatorComponent implements OnInit {
     }
   }
 
-  getComponentTitle(): string {
-    switch (this.activeComponentType) {
-      case 'resources': return 'Recursos';
-      case 'parameters': return 'Parámetros';
-      case 'outputs': return 'Outputs';
-      case 'mappings': return 'Mappings';
-      case 'conditions': return 'Condiciones';
-      default: return '';
+  setDefaultActiveSection(): void {
+    // Siempre mostrar recursos por defecto si hay
+    if (this.getResourceCount() > 0) {
+      this.activeComponentType = 'resources';
+      return;
+    }
+    
+    // Si no hay recursos, buscar la primera sección que tenga contenido
+    for (const section of this.cfnSections) {
+      if (section === 'resources') continue; // Ya verificamos recursos
+      
+      let count = 0;
+      switch (section) {
+        case 'parameters': count = this.getParameterCount(); break;
+        case 'mappings': count = this.getMappingCount(); break;
+        case 'outputs': count = this.getOutputCount(); break;
+        case 'conditions': count = this.getConditionCount(); break;
+        case 'globals': count = this.getGlobalCount(); break;
+      }
+      
+      if (count > 0) {
+        this.activeComponentType = section;
+        return;
+      }
     }
   }
 
   showResourceDetail(resource: CloudFormationResource): void {
     console.log('Mostrando detalle del recurso:', resource);
     this.selectedResource = resource;
-    this.resourceCode = JSON.stringify(resource.properties, null, 2);
+    
+    // Extraer el recurso exactamente como aparece en el template
+    this.resourceCode = this.getExtractedResource(resource.logicalId);
     
     // Mostrar el modal de detalles del recurso
     if (this.detailModal) {
@@ -164,7 +200,124 @@ export class TemplateValidatorComponent implements OnInit {
   getConditionCount(): number {
     return this.validationResult ? Object.keys(this.validationResult.conditions).length : 0;
   }
+  
+  getGlobalCount(): number {
+    return this.validationResult && this.validationResult.globals ? 
+      Object.keys(this.validationResult.globals).length : 0;
+  }
 
+  showParameterDetail(paramName: string, parameter: CloudFormationParameter): void {
+    console.log('Mostrando detalle del parámetro:', paramName);
+    this.selectedParameterName = paramName;
+    this.selectedParameter = parameter;
+    
+    // Extraer el parámetro exactamente como aparece en el template
+    this.parameterCode = this.getExtractedParameter(paramName);
+    
+    // Mostrar el modal de detalles del parámetro
+    if (this.parameterModal) {
+      this.parameterModal.show();
+    } else {
+      console.error('No se pudo inicializar el modal de detalles del parámetro');
+    }
+  }
+  
+  getExtractedParameter(paramName: string): string {
+    return this.extractor.extractParameter(this.templateContent, paramName);
+  }
+  
+  getExtractedResource(resourceName: string): string {
+    return this.extractor.extractResource(this.templateContent, resourceName);
+  }
+  
+  getExtractedMapping(mappingName: string): string {
+    return this.extractor.extractMapping(this.templateContent, mappingName);
+  }
+  
+  getExtractedOutput(outputName: string): string {
+    return this.extractor.extractOutput(this.templateContent, outputName);
+  }
+  
+  getExtractedCondition(conditionName: string): string {
+    return this.extractor.extractCondition(this.templateContent, conditionName);
+  }
+  
+  getSectionContent(section: string): string {
+    if (!this.templateContent || !this.validationResult) return '';
+    
+    return this.extractor.extractSection(this.templateContent, section);
+  }
+  
+  getResourceNames(): string[] {
+    if (!this.validationResult) return [];
+    
+    return this.validationResult.resources.map(resource => resource.logicalId);
+  }
+  
+  getParameterNames(): string[] {
+    if (!this.validationResult) return [];
+    
+    return Object.keys(this.validationResult.parameters);
+  }
+  
+  getOutputNames(): string[] {
+    if (!this.validationResult) return [];
+    
+    return Object.keys(this.validationResult.outputs);
+  }
+  
+  getMappingNames(): string[] {
+    if (!this.validationResult) return [];
+    
+    return Object.keys(this.validationResult.mappings);
+  }
+  
+  getConditionNames(): string[] {
+    if (!this.validationResult) return [];
+    
+    return Object.keys(this.validationResult.conditions);
+  }
+  
+  // Métodos para obtener componentes jerárquicos basados en la indentación
+  getResourceComponents(): TemplateNode[] {
+    if (!this.templateContent) return [];
+    return this.hierarchy.getHierarchicalComponents(this.templateContent, 'Resources');
+  }
+  
+  getParameterComponents(): TemplateNode[] {
+    if (!this.templateContent) return [];
+    return this.hierarchy.getHierarchicalComponents(this.templateContent, 'Parameters');
+  }
+  
+  getOutputComponents(): TemplateNode[] {
+    if (!this.templateContent) return [];
+    return this.hierarchy.getHierarchicalComponents(this.templateContent, 'Outputs');
+  }
+  
+  getMappingComponents(): TemplateNode[] {
+    if (!this.templateContent) return [];
+    return this.hierarchy.getHierarchicalComponents(this.templateContent, 'Mappings');
+  }
+  
+  getConditionComponents(): TemplateNode[] {
+    if (!this.templateContent) return [];
+    return this.hierarchy.getHierarchicalComponents(this.templateContent, 'Conditions');
+  }
+  
+  extractParameter(paramName: string, parameter: CloudFormationParameter): void {
+    // Extraer el parámetro exactamente como aparece en el template
+    const extractedParam = this.getExtractedParameter(paramName);
+    
+    // Copiar al portapapeles
+    navigator.clipboard.writeText(extractedParam)
+      .then(() => {
+        alert(`Parámetro ${paramName} copiado al portapapeles`);
+      })
+      .catch(err => {
+        console.error('Error al copiar el parámetro: ', err);
+      });
+  }
+  
   copyResourceCode(): void {
     if (this.resourceCode) {
       navigator.clipboard.writeText(this.resourceCode)
@@ -173,6 +326,18 @@ export class TemplateValidatorComponent implements OnInit {
         })
         .catch(err => {
           console.error('Error al copiar el código: ', err);
+        });
+    }
+  }
+  
+  copyParameterCode(): void {
+    if (this.parameterCode) {
+      navigator.clipboard.writeText(this.parameterCode)
+        .then(() => {
+          alert('Código del parámetro copiado al portapapeles');
+        })
+        .catch(err => {
+          console.error('Error al copiar el código del parámetro: ', err);
         });
     }
   }

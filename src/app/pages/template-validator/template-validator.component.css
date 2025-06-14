@@ -1,63 +1,38 @@
-.spin {
-  animation: spin 1s linear infinite;
+.hierarchy-tree {
+  padding: 10px;
+  border: 1px solid #eee;
+  border-radius: 5px;
+  background-color: #f9f9f9;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.hierarchy-tree .fw-bold {
+  color: #0d6efd;
 }
 
-.counter-card {
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+.ms-4 {
+  margin-left: 1.5rem !important;
 }
 
-.counter-card.clickable {
-  cursor: pointer;
-  transition: all 0.2s ease;
+.mb-1 {
+  margin-bottom: 0.25rem !important;
 }
 
-.counter-card.clickable:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-  background-color: #f8f9fa;
+.mb-2 {
+  margin-bottom: 0.5rem !important;
 }
 
-.counter-card.active {
-  border-color: var(--primary-color);
-  background-color: rgba(255, 153, 0, 0.1);
+.mb-3 {
+  margin-bottom: 1rem !important;
 }
 
-.counter-card h3 {
-  font-size: 1.5rem;
-  font-weight: 500;
-  color: var(--primary-color);
-  margin-bottom: 0;
+.me-2 {
+  margin-right: 0.5rem !important;
 }
 
-.counter-card p {
-  font-size: 0.8rem;
+.d-flex {
+  display: flex !important;
 }
 
-pre {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.component-details {
-  border-top: 1px solid #dee2e6;
-  padding-top: 1rem;
-}
-
-.table-sm td, .table-sm th {
-  padding: 0.3rem;
-  font-size: 0.9rem;
-}
-
-.small pre {
-  max-height: 100px;
-  margin: 0;
-  padding: 5px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  font-size: 0.8rem;
+.align-items-center {
+  align-items: center !important;
 }
