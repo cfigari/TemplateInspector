@@ -1,3 +1,24 @@
+<!-- Modal centralizado para mostrar el extracto -->
+<div class="modal fade" id="extractModal" tabindex="-1" aria-labelledby="extractModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="extractModalLabel">{{ modalService.title }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <pre class="bg-light p-3 rounded" style="max-height: 500px; overflow-y: auto;"><code>{{ modalService.content }}</code></pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" (click)="copyModalContent()">
+          <i class="bi bi-clipboard"></i> Copiar Código
+        </button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="container-fluid p-4">
   <h2 class="mb-4">Validador de Templates CloudFormation</h2>
   
@@ -84,184 +105,229 @@
         <!-- Recursos -->
         <div *ngIf="activeComponentType === 'resources'" class="table-responsive">
           <div class="mb-3">
-            <app-extract-block 
-              blockName="Resources" 
-              [blockContent]="getSectionContent('Resources')">
-            </app-extract-block>
-            <span class="ms-2">Extraer toda la sección Resources</span>
+            <span>Extraer toda la sección Resources</span>
+            <a href="javascript:void(0)" class="text-primary ms-2" (click)="showExtract('Resources', getSectionContent('Resources'))">
+              <i class="bi bi-box-arrow-up-right"></i>
+            </a>
           </div>
           
-          <!-- Vista jerárquica de recursos -->
-          <div class="hierarchy-tree">
-            <div *ngFor="let resource of getResourceComponents()" class="mb-3">
-              <div class="d-flex align-items-center">
-                <span class="me-2 fw-bold">{{ resource.id }}</span>
-                <app-extract-block 
-                  [blockName]="resource.id" 
-                  [blockContent]="resource.extract">
-                </app-extract-block>
-              </div>
-              
-              <!-- Propiedades del recurso (nivel 1) -->
-              <div *ngIf="resource.children && resource.children.length > 0" class="ms-4">
-                <div *ngFor="let prop of resource.children" class="mb-2">
-                  <div class="d-flex align-items-center">
-                    <span class="me-2">{{ prop.id }}{{ prop.value ? ': ' + prop.value : '' }}</span>
-                    <app-extract-block 
-                      [blockName]="prop.id" 
-                      [blockContent]="prop.extract">
-                    </app-extract-block>
-                  </div>
-                  
-                  <!-- Subpropiedades (nivel 2) -->
-                  <div *ngIf="prop.children && prop.children.length > 0" class="ms-4">
-                    <div *ngFor="let subprop of prop.children" class="mb-1">
-                      <span>{{ subprop.id }}{{ subprop.value ? ': ' + subprop.value : '' }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <!-- Botones por tipo de recurso -->
+          <div class="resource-type-buttons mb-3">
+            <button class="btn" 
+                    [ngClass]="activeResourceType === 'All' ? 'btn-primary' : 'btn-outline-secondary'"
+                    (click)="setActiveResourceType('All')" 
+                    title="Mostrar todos los recursos">
+              <i class="bi bi-grid-3x3-gap"></i> Todos
+              <span class="badge bg-light text-dark ms-1">{{ getResourceComponents().length }}</span>
+            </button>
+            
+            <ng-container *ngFor="let type of getUniqueResourceTypes()">
+              <button class="btn ms-2" 
+                      [ngClass]="activeResourceType === type ? 'btn-primary' : 'btn-outline-secondary'"
+                      (click)="setActiveResourceType(type)" 
+                      [title]="'Recursos tipo ' + type">
+                <i [ngClass]="getIconForResourceType(type)"></i> {{ getShortTypeName(type) }}
+                <span class="badge bg-light text-dark ms-1">{{ countResourcesByType(type) }}</span>
+              </button>
+            </ng-container>
           </div>
+          
+          <!-- Vista en grilla de recursos -->
+          <table class="table table-hover table-bordered">
+            <thead class="table-light">
+              <tr>
+                <th>ID Lógico</th>
+                <th *ngFor="let prop of getSpecificPropertiesForType()">{{ getPropertyDisplayName(prop) }}</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let resource of getFilteredResourceComponents()">
+                <td>{{ resource.id }}</td>
+                <td *ngFor="let prop of getSpecificPropertiesForType()">
+                  <!-- Propiedad simple -->
+                  <span *ngIf="isSimplePropertyInResource(resource, prop)">
+                    {{ getResourcePropertyValue(resource, prop) }}
+                  </span>
+                  
+                  <!-- Propiedad lista -->
+                  <ul *ngIf="isListPropertyInResource(resource, prop)" class="mb-0 ps-3">
+                    <li *ngFor="let item of getResourcePropertyList(resource, prop)">{{ item }}</li>
+                  </ul>
+                  
+                  <!-- Propiedad compuesta -->
+                  <div *ngIf="isComplexPropertyInResource(resource, prop)" class="complex-property">
+                    <pre class="complex-value">{{ getResourcePropertySummary(resource, prop) }}</pre>
+                  </div>
+                </td>
+                <td class="text-center">
+                  <button class="btn btn-sm btn-outline-primary" (click)="showExtract(resource.id, resource.extract)">
+                    Ver código
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         
         <!-- Parámetros -->
         <div *ngIf="activeComponentType === 'parameters'" class="table-responsive">
           <div class="mb-3">
-            <app-extract-block 
-              blockName="Parameters" 
-              [blockContent]="getSectionContent('Parameters')">
-            </app-extract-block>
-            <span class="ms-2">Extraer toda la sección Parameters</span>
+            <span>Extraer toda la sección Parameters</span>
+            <a href="javascript:void(0)" class="text-primary ms-2" (click)="showExtract('Parameters', getSectionContent('Parameters'))">
+              <i class="bi bi-box-arrow-up-right"></i>
+            </a>
           </div>
           
-          <!-- Vista jerárquica de parámetros -->
-          <div class="hierarchy-tree">
-            <div *ngFor="let param of getParameterComponents()" class="mb-3">
-              <div class="d-flex align-items-center">
-                <span class="me-2 fw-bold">{{ param.id }}</span>
-                <app-extract-block 
-                  [blockName]="param.id" 
-                  [blockContent]="param.extract">
-                </app-extract-block>
-              </div>
-              
-              <!-- Propiedades del parámetro (nivel 1) -->
-              <div *ngIf="param.children && param.children.length > 0" class="ms-4">
-                <div *ngFor="let prop of param.children" class="mb-2">
-                  <div class="d-flex align-items-center">
-                    <span class="me-2">{{ prop.id }}{{ prop.value ? ': ' + prop.value : '' }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- Vista en grilla de parámetros -->
+          <table class="table table-hover table-bordered">
+            <thead class="table-light">
+              <tr>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>Valor por defecto</th>
+                <th>Descripción</th>
+                <th>Valores permitidos</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let param of getParameterComponents()">
+                <td>{{ param.id }}</td>
+                <td>{{ getParameterProperty(param, 'Type') }}</td>
+                <td>{{ getParameterProperty(param, 'Default') }}</td>
+                <td>{{ getParameterProperty(param, 'Description') }}</td>
+                <td>
+                  <ul *ngIf="getParameterAllowedValues(param).length > 0" class="mb-0 ps-3">
+                    <li *ngFor="let value of getParameterAllowedValues(param)">{{ value }}</li>
+                  </ul>
+                </td>
+                <td class="text-center">
+                  <button class="btn btn-sm btn-outline-primary" (click)="showExtract(param.id, param.extract)">
+                    Ver código
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         
         <!-- Outputs -->
         <div *ngIf="activeComponentType === 'outputs'" class="table-responsive">
           <div class="mb-3">
-            <app-extract-block 
-              blockName="Outputs" 
-              [blockContent]="getSectionContent('Outputs')">
-            </app-extract-block>
-            <span class="ms-2">Extraer toda la sección Outputs</span>
+            <span>Extraer toda la sección Outputs</span>
+            <a href="javascript:void(0)" class="text-primary ms-2" (click)="showExtract('Outputs', getSectionContent('Outputs'))">
+              <i class="bi bi-box-arrow-up-right"></i>
+            </a>
           </div>
           
-          <!-- Vista jerárquica de outputs -->
-          <div class="hierarchy-tree">
-            <div *ngFor="let output of getOutputComponents()" class="mb-3">
-              <div class="d-flex align-items-center">
-                <span class="me-2 fw-bold">{{ output.id }}</span>
-                <app-extract-block 
-                  [blockName]="output.id" 
-                  [blockContent]="output.extract">
-                </app-extract-block>
-              </div>
-              
-              <!-- Propiedades del output (nivel 1) -->
-              <div *ngIf="output.children && output.children.length > 0" class="ms-4">
-                <div *ngFor="let prop of output.children" class="mb-2">
-                  <div class="d-flex align-items-center">
-                    <span class="me-2">{{ prop.id }}{{ prop.value ? ': ' + prop.value : '' }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- Vista en grilla de outputs -->
+          <table class="table table-hover table-bordered">
+            <thead class="table-light">
+              <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Valor</th>
+                <th>Exportado como</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let output of getOutputComponents()">
+                <td>{{ output.id }}</td>
+                <td>{{ getOutputProperty(output, 'Description') }}</td>
+                <td>
+                  <span *ngIf="!isComplexValue(output, 'Value')">{{ getOutputProperty(output, 'Value') }}</span>
+                  <pre *ngIf="isComplexValue(output, 'Value')" class="complex-value">{{ getOutputPropertyExtract(output, 'Value') }}</pre>
+                </td>
+                <td>{{ getOutputExportName(output) }}</td>
+                <td class="text-center">
+                  <button class="btn btn-sm btn-outline-primary" (click)="showExtract(output.id, output.extract)">
+                    Ver código
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         
         <!-- Mappings -->
         <div *ngIf="activeComponentType === 'mappings'" class="table-responsive">
           <div class="mb-3">
-            <app-extract-block 
-              blockName="Mappings" 
-              [blockContent]="getSectionContent('Mappings')">
-            </app-extract-block>
-            <span class="ms-2">Extraer toda la sección Mappings</span>
+            <span>Extraer toda la sección Mappings</span>
+            <a href="javascript:void(0)" class="text-primary ms-2" (click)="showExtract('Mappings', getSectionContent('Mappings'))">
+              <i class="bi bi-box-arrow-up-right"></i>
+            </a>
           </div>
           
-          <!-- Vista jerárquica de mappings -->
-          <div class="hierarchy-tree">
-            <div *ngFor="let mapping of getMappingComponents()" class="mb-3">
-              <div class="d-flex align-items-center">
-                <span class="me-2 fw-bold">{{ mapping.id }}</span>
-                <app-extract-block 
-                  [blockName]="mapping.id" 
-                  [blockContent]="mapping.extract">
-                </app-extract-block>
-              </div>
-              
-              <!-- Propiedades del mapping (nivel 1) -->
-              <div *ngIf="mapping.children && mapping.children.length > 0" class="ms-4">
-                <div *ngFor="let prop of mapping.children" class="mb-2">
-                  <div class="d-flex align-items-center">
-                    <span class="me-2">{{ prop.id }}{{ prop.value ? ': ' + prop.value : '' }}</span>
+          <!-- Vista en grilla de mappings -->
+          <table class="table table-hover table-bordered">
+            <thead class="table-light">
+              <tr>
+                <th>Nombre</th>
+                <th>Claves</th>
+                <th>Estructura</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let mapping of getMappingComponents()">
+                <td>{{ mapping.id }}</td>
+                <td>
+                  <span class="badge bg-secondary me-1" *ngFor="let key of getMappingKeys(mapping)">{{ key }}</span>
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-outline-secondary" (click)="toggleMappingDetails(mapping.id)">
+                    {{ isExpandedMapping(mapping.id) ? 'Ocultar' : 'Ver' }} estructura
+                  </button>
+                  <div *ngIf="isExpandedMapping(mapping.id)" class="mt-2">
+                    <pre class="complex-value">{{ getMappingStructure(mapping) }}</pre>
                   </div>
-                  
-                  <!-- Subpropiedades (nivel 2) -->
-                  <div *ngIf="prop.children && prop.children.length > 0" class="ms-4">
-                    <div *ngFor="let subprop of prop.children" class="mb-1">
-                      <span>{{ subprop.id }}{{ subprop.value ? ': ' + subprop.value : '' }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+                </td>
+                <td class="text-center">
+                  <button class="btn btn-sm btn-outline-primary" (click)="showExtract(mapping.id, mapping.extract)">
+                    Ver código
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         
         <!-- Conditions -->
         <div *ngIf="activeComponentType === 'conditions'" class="table-responsive">
           <div class="mb-3">
-            <app-extract-block 
-              blockName="Conditions" 
-              [blockContent]="getSectionContent('Conditions')">
-            </app-extract-block>
-            <span class="ms-2">Extraer toda la sección Conditions</span>
+            <span>Extraer toda la sección Conditions</span>
+            <a href="javascript:void(0)" class="text-primary ms-2" (click)="showExtract('Conditions', getSectionContent('Conditions'))">
+              <i class="bi bi-box-arrow-up-right"></i>
+            </a>
           </div>
           
-          <!-- Vista jerárquica de conditions -->
-          <div class="hierarchy-tree">
-            <div *ngFor="let condition of getConditionComponents()" class="mb-3">
-              <div class="d-flex align-items-center">
-                <span class="me-2 fw-bold">{{ condition.id }}</span>
-                <app-extract-block 
-                  [blockName]="condition.id" 
-                  [blockContent]="condition.extract">
-                </app-extract-block>
-              </div>
-              
-              <!-- Propiedades de la condición (nivel 1) -->
-              <div *ngIf="condition.children && condition.children.length > 0" class="ms-4">
-                <div *ngFor="let prop of condition.children" class="mb-2">
-                  <div class="d-flex align-items-center">
-                    <span class="me-2">{{ prop.id }}{{ prop.value ? ': ' + prop.value : '' }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- Vista en grilla de conditions -->
+          <table class="table table-hover table-bordered">
+            <thead class="table-light">
+              <tr>
+                <th>Nombre</th>
+                <th>Tipo de condición</th>
+                <th>Expresión</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let condition of getConditionComponents()">
+                <td>{{ condition.id }}</td>
+                <td>{{ getConditionType(condition) }}</td>
+                <td>
+                  <pre class="complex-value">{{ getConditionExpression(condition) }}</pre>
+                </td>
+                <td class="text-center">
+                  <button class="btn btn-sm btn-outline-primary" (click)="showExtract(condition.id, condition.extract)">
+                    Ver código
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         
         <!-- Globals -->
@@ -287,4 +353,3 @@
     </div>
   </div>
 </div>
-

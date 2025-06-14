@@ -6,6 +6,7 @@ export interface TemplateNode {
   level: number;
   extract: string;
   value: any;
+  isComplex?: boolean;
   children: TemplateNode[];
 }
 
@@ -59,40 +60,63 @@ export class TemplateHierarchyService {
       if (indent === baseIndent + 2 && trimmedLine.includes(':')) {
         const parts = trimmedLine.split(':');
         const nodeName = parts[0].trim();
-        const nodeValue = parts.length > 1 ? parts[1].trim() : null;
+        let nodeValue = parts.length > 1 ? parts[1].trim() : null;
         
-        currentNode = {
-          id: nodeName,
-          level: indent,
-          extract: line,
-          value: nodeValue,
-          children: []
-        };
-        
-        parent.children.push(currentNode);
-        
-        // Buscar hijos de este nodo
+        // Extraer el contenido completo para este nodo
+        let fullExtract = line + '\n';
         let j = i + 1;
-        const childLines: string[] = [];
+        let isComplex = false;
         
+        // Verificar si es un elemento complejo (lista o mapa)
+        if (trimmedLine.endsWith(':') || 
+            nodeValue === null || 
+            ['vpcConfig', 'events', 'tags', 'Properties', 'Metadata'].includes(nodeName)) {
+          isComplex = true;
+        }
+        
+        // Recopilar todas las líneas que pertenecen a este nodo
         while (j < lines.length) {
-          const childLine = lines[j];
-          const childIndent = childLine.search(/\S/);
+          const nextLine = lines[j];
+          const nextIndent = nextLine.search(/\S/);
           
-          if (!childLine.trim() || childIndent > indent) {
-            childLines.push(childLine);
+          if (!nextLine.trim() || nextIndent > indent) {
+            fullExtract += nextLine + '\n';
             j++;
           } else {
             break;
           }
         }
         
+        currentNode = {
+          id: nodeName,
+          level: indent,
+          extract: fullExtract.trim(),
+          value: nodeValue,
+          isComplex: isComplex,
+          children: []
+        };
+        
+        parent.children.push(currentNode);
+        
+        // Buscar hijos de este nodo
+        const childLines: string[] = [];
+        let k = i + 1;
+        
+        while (k < j) {
+          const childLine = lines[k];
+          const childIndent = childLine.search(/\S/);
+          
+          if (!childLine.trim() || childIndent > indent) {
+            childLines.push(childLine);
+          }
+          k++;
+        }
+        
         if (childLines.length > 0) {
           this.parseLines(childLines, currentNode, indent);
-          i = j;
-        } else {
-          i++;
         }
+        
+        i = j;
       } else {
         i++;
       }
@@ -105,5 +129,34 @@ export class TemplateHierarchyService {
   getHierarchicalComponents(templateContent: string, section: string): TemplateNode[] {
     const hierarchy = this.buildHierarchy(templateContent, section);
     return hierarchy.children;
+  }
+  
+  /**
+   * Extrae el contenido completo de un nodo específico, incluyendo todos sus hijos
+   */
+  getNodeExtract(node: TemplateNode): string {
+    if (!node) return '';
+    
+    // Si ya tiene un extracto completo, devolverlo
+    if (node.extract) return node.extract;
+    
+    // Construir el extracto basado en el ID y valor
+    let extract = node.id + ':';
+    if (node.value) {
+      extract += ' ' + node.value;
+    }
+    
+    // Si tiene hijos, añadirlos con la indentación adecuada
+    if (node.children && node.children.length > 0) {
+      for (const child of node.children) {
+        const childExtract = this.getNodeExtract(child);
+        const indentedChildExtract = childExtract.split('\n')
+          .map(line => '  ' + line)
+          .join('\n');
+        extract += '\n' + indentedChildExtract;
+      }
+    }
+    
+    return extract;
   }
 }

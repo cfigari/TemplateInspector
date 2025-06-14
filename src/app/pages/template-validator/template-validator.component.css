@@ -1,16 +1,21 @@
-.hierarchy-tree {
-  padding: 10px;
-  border: 1px solid #eee;
-  border-radius: 5px;
-  background-color: #f9f9f9;
+.table-sm td, .table-sm th {
+  padding: 0.25rem 0.5rem;
 }
 
-.hierarchy-tree .fw-bold {
-  color: #0d6efd;
+.table-bordered {
+  border: 1px solid #dee2e6;
 }
 
-.ms-4 {
-  margin-left: 1.5rem !important;
+.table-hover tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.075);
+}
+
+.table-light {
+  background-color: #f8f9fa;
+}
+
+.mb-0 {
+  margin-bottom: 0 !important;
 }
 
 .mb-1 {
@@ -25,8 +30,28 @@
   margin-bottom: 1rem !important;
 }
 
+.me-1 {
+  margin-right: 0.25rem !important;
+}
+
 .me-2 {
   margin-right: 0.5rem !important;
+}
+
+.ms-1 {
+  margin-left: 0.25rem !important;
+}
+
+.ms-2 {
+  margin-left: 0.5rem !important;
+}
+
+.ms-4 {
+  margin-left: 1.5rem !important;
+}
+
+.mt-2 {
+  margin-top: 0.5rem !important;
 }
 
 .d-flex {
@@ -35,4 +60,85 @@
 
 .align-items-center {
   align-items: center !important;
+}
+
+/* Estilos para elementos complejos */
+.complex-value {
+  background-color: #f8f9fa;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  font-family: monospace;
+  white-space: pre-wrap;
+  font-size: 0.85rem;
+  margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.complex-property {
+  max-width: 400px;
+  overflow-x: auto;
+}
+
+/* Estilos para badges */
+.badge {
+  display: inline-block;
+  padding: 0.25em 0.4em;
+  font-size: 75%;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 0.25rem;
+}
+
+.bg-secondary {
+  background-color: #6c757d !important;
+}
+
+.bg-light {
+  background-color: #f8f9fa !important;
+}
+
+.text-dark {
+  color: #212529 !important;
+}
+
+.text-white {
+  color: #fff !important;
+}
+
+/* Estilos para botones de tipo de recurso */
+.resource-type-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.resource-type-buttons .btn {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.resource-type-buttons .btn i {
+  margin-right: 0.25rem;
+}
+
+.btn-primary {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+  color: #fff;
+}
+
+.btn-outline-secondary {
+  color: #6c757d;
+  border-color: #6c757d;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #6c757d;
+  color: #fff;
 }
