@@ -46,6 +46,10 @@
   margin-left: 0.5rem !important;
 }
 
+.ms-3 {
+  margin-left: 1rem !important;
+}
+
 .ms-4 {
   margin-left: 1.5rem !important;
 }
@@ -76,8 +80,35 @@
 }
 
 .complex-property {
-  max-width: 400px;
+  max-width: 600px;
   overflow-x: auto;
+}
+
+/* Estilos para mappings */
+.mapping-env {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  background-color: #f8f9fa;
+}
+
+.mapping-env-name {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.mapping-property {
+  margin-left: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.mapping-property-name {
+  font-weight: bold;
+}
+
+.mapping-property-value {
+  font-family: monospace;
+  word-break: break-all;
 }
 
 /* Estilos para badges */

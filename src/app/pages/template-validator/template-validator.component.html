@@ -145,13 +145,13 @@
               <tr *ngFor="let resource of getFilteredResourceComponents()">
                 <td>{{ resource.id }}</td>
                 <td *ngFor="let prop of getSpecificPropertiesForType()">
-                  <!-- Propiedad simple -->
-                  <span *ngIf="isSimplePropertyInResource(resource, prop)">
+                  <!-- Propiedad simple con valor -->
+                  <span *ngIf="isSimplePropertyInResource(resource, prop) && getResourcePropertyValue(resource, prop)">
                     {{ getResourcePropertyValue(resource, prop) }}
                   </span>
                   
-                  <!-- Propiedad lista -->
-                  <ul *ngIf="isListPropertyInResource(resource, prop)" class="mb-0 ps-3">
+                  <!-- Propiedad lista con elementos -->
+                  <ul *ngIf="isListPropertyInResource(resource, prop) && getResourcePropertyList(resource, prop).length > 0" class="mb-0 ps-3">
                     <li *ngFor="let item of getResourcePropertyList(resource, prop)">{{ item }}</li>
                   </ul>
                   
@@ -159,6 +159,12 @@
                   <div *ngIf="isComplexPropertyInResource(resource, prop)" class="complex-property">
                     <pre class="complex-value">{{ getResourcePropertySummary(resource, prop) }}</pre>
                   </div>
+                  
+                  <!-- Mostrar guión si no hay valor -->
+                  <span *ngIf="(isSimplePropertyInResource(resource, prop) && !getResourcePropertyValue(resource, prop)) || 
+                              (isListPropertyInResource(resource, prop) && getResourcePropertyList(resource, prop).length === 0)">
+                    -
+                  </span>
                 </td>
                 <td class="text-center">
                   <button class="btn btn-sm btn-outline-primary" (click)="showExtract(resource.id, resource.extract)">
@@ -185,7 +191,6 @@
               <tr>
                 <th>Nombre</th>
                 <th>Tipo</th>
-                <th>Valor por defecto</th>
                 <th>Descripción</th>
                 <th>Valores permitidos</th>
                 <th>Acciones</th>
@@ -194,13 +199,18 @@
             <tbody>
               <tr *ngFor="let param of getParameterComponents()">
                 <td>{{ param.id }}</td>
-                <td>{{ getParameterProperty(param, 'Type') }}</td>
-                <td>{{ getParameterProperty(param, 'Default') }}</td>
-                <td>{{ getParameterProperty(param, 'Description') }}</td>
+                <td>{{ getParameterProperty(param, 'Type') || '-' }}</td>
+                <td>
+                  <div class="complex-property">
+                    <pre *ngIf="getParameterProperty(param, 'Description')" class="complex-value">{{ getParameterProperty(param, 'Description') }}</pre>
+                    <span *ngIf="!getParameterProperty(param, 'Description')">-</span>
+                  </div>
+                </td>
                 <td>
                   <ul *ngIf="getParameterAllowedValues(param).length > 0" class="mb-0 ps-3">
                     <li *ngFor="let value of getParameterAllowedValues(param)">{{ value }}</li>
                   </ul>
+                  <span *ngIf="getParameterAllowedValues(param).length === 0">-</span>
                 </td>
                 <td class="text-center">
                   <button class="btn btn-sm btn-outline-primary" (click)="showExtract(param.id, param.extract)">
@@ -226,7 +236,6 @@
             <thead class="table-light">
               <tr>
                 <th>Nombre</th>
-                <th>Descripción</th>
                 <th>Valor</th>
                 <th>Exportado como</th>
                 <th>Acciones</th>
@@ -235,12 +244,14 @@
             <tbody>
               <tr *ngFor="let output of getOutputComponents()">
                 <td>{{ output.id }}</td>
-                <td>{{ getOutputProperty(output, 'Description') }}</td>
                 <td>
-                  <span *ngIf="!isComplexValue(output, 'Value')">{{ getOutputProperty(output, 'Value') }}</span>
-                  <pre *ngIf="isComplexValue(output, 'Value')" class="complex-value">{{ getOutputPropertyExtract(output, 'Value') }}</pre>
+                  <div class="complex-property">
+                    <span *ngIf="!isComplexValue(output, 'Value') && getOutputProperty(output, 'Value')">{{ getOutputProperty(output, 'Value') }}</span>
+                    <pre *ngIf="isComplexValue(output, 'Value')" class="complex-value">{{ getOutputPropertyExtract(output, 'Value') }}</pre>
+                    <span *ngIf="!isComplexValue(output, 'Value') && !getOutputProperty(output, 'Value')">-</span>
+                  </div>
                 </td>
-                <td>{{ getOutputExportName(output) }}</td>
+                <td>{{ getOutputExportName(output) || '-' }}</td>
                 <td class="text-center">
                   <button class="btn btn-sm btn-outline-primary" (click)="showExtract(output.id, output.extract)">
                     Ver código
@@ -265,8 +276,7 @@
             <thead class="table-light">
               <tr>
                 <th>Nombre</th>
-                <th>Claves</th>
-                <th>Estructura</th>
+                <th>Entornos</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -274,14 +284,12 @@
               <tr *ngFor="let mapping of getMappingComponents()">
                 <td>{{ mapping.id }}</td>
                 <td>
-                  <span class="badge bg-secondary me-1" *ngFor="let key of getMappingKeys(mapping)">{{ key }}</span>
-                </td>
-                <td>
-                  <button class="btn btn-sm btn-outline-secondary" (click)="toggleMappingDetails(mapping.id)">
-                    {{ isExpandedMapping(mapping.id) ? 'Ocultar' : 'Ver' }} estructura
-                  </button>
-                  <div *ngIf="isExpandedMapping(mapping.id)" class="mt-2">
-                    <pre class="complex-value">{{ getMappingStructure(mapping) }}</pre>
+                  <div *ngFor="let env of mapping.children" class="mapping-env">
+                    <div class="mapping-env-name">{{ env.id }}:</div>
+                    <div *ngFor="let prop of env.children" class="mapping-property">
+                      <span class="mapping-property-name">{{ prop.id }}:</span>
+                      <div class="mapping-property-value">{{ prop.value }}</div>
+                    </div>
                   </div>
                 </td>
                 <td class="text-center">
@@ -308,7 +316,6 @@
             <thead class="table-light">
               <tr>
                 <th>Nombre</th>
-                <th>Tipo de condición</th>
                 <th>Expresión</th>
                 <th>Acciones</th>
               </tr>
@@ -316,9 +323,10 @@
             <tbody>
               <tr *ngFor="let condition of getConditionComponents()">
                 <td>{{ condition.id }}</td>
-                <td>{{ getConditionType(condition) }}</td>
                 <td>
-                  <pre class="complex-value">{{ getConditionExpression(condition) }}</pre>
+                  <div class="complex-property">
+                    <pre class="complex-value">{{ getConditionExpression(condition) }}</pre>
+                  </div>
                 </td>
                 <td class="text-center">
                   <button class="btn btn-sm btn-outline-primary" (click)="showExtract(condition.id, condition.extract)">
@@ -332,18 +340,33 @@
         
         <!-- Globals -->
         <div *ngIf="activeComponentType === 'globals'" class="table-responsive">
-          <table class="table table-hover table-sm">
-            <thead>
+          <div class="mb-3">
+            <span>Extraer toda la sección Globals</span>
+            <a href="javascript:void(0)" class="text-primary ms-2" (click)="showExtract('Globals', getSectionContent('Globals'))">
+              <i class="bi bi-box-arrow-up-right"></i>
+            </a>
+          </div>
+          
+          <table class="table table-hover table-bordered">
+            <thead class="table-light">
               <tr>
                 <th>Nombre</th>
                 <th>Contenido</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let global of validationResult.globals | keyvalue">
                 <td>{{ global.key }}</td>
                 <td>
-                  <pre class="small mb-0">{{ global.value | json }}</pre>
+                  <div class="complex-property">
+                    <pre class="complex-value">{{ global.value | json }}</pre>
+                  </div>
+                </td>
+                <td class="text-center">
+                  <button class="btn btn-sm btn-outline-primary" (click)="showExtract(global.key, global.value | json)">
+                    Ver código
+                  </button>
                 </td>
               </tr>
             </tbody>

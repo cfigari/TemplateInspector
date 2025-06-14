@@ -306,13 +306,13 @@ export class TemplateValidatorComponent implements OnInit {
     
     const types = new Set<string>();
     matches.forEach(match => {
-      if (match[1]) {
+      if (match[1] && match[1].match(/^AWS::[A-Za-z0-9]+::[A-Za-z0-9]+$/)) {
         types.add(match[1]);
       }
     });
     
     const uniqueTypes = Array.from(types).sort();
-    console.log('Tipos únicos encontrados:', uniqueTypes);
+    console.log('Tipos únicos válidos encontrados:', uniqueTypes);
     return uniqueTypes;
   }
   
@@ -437,11 +437,11 @@ export class TemplateValidatorComponent implements OnInit {
     
     // Propiedades específicas según el tipo de recurso exacto
     if (this.activeResourceType === 'AWS::IAM::Role') {
-      return ['RoleName', 'AssumeRolePolicyDocument', 'ManagedPolicyArns', 'Policies'];
+      return ['ManagedPolicyArns', 'Policies', 'AssumeRolePolicyDocument'];
     }
     
     if (this.activeResourceType === 'AWS::EC2::Instance') {
-      return ['InstanceType', 'ImageId', 'SecurityGroups', 'SubnetId', 'KeyName'];
+      return ['InstanceType', 'ImageId', 'SecurityGroups', 'SubnetId'];
     }
     
     if (this.activeResourceType === 'AWS::EC2::SecurityGroup') {
@@ -449,44 +449,52 @@ export class TemplateValidatorComponent implements OnInit {
     }
     
     if (this.activeResourceType === 'AWS::S3::Bucket') {
-      return ['BucketName', 'AccessControl', 'VersioningConfiguration', 'WebsiteConfiguration'];
+      return ['BucketName', 'VersioningConfiguration', 'WebsiteConfiguration'];
     }
     
     if (this.activeResourceType === 'AWS::Lambda::Function') {
-      return ['Runtime', 'Handler', 'Role', 'Code', 'Timeout'];
+      return ['Runtime', 'Handler', 'Code', 'Timeout'];
     }
     
     if (this.activeResourceType === 'AWS::DynamoDB::Table') {
-      return ['TableName', 'BillingMode', 'KeySchema', 'AttributeDefinitions'];
+      return ['KeySchema', 'AttributeDefinitions'];
     }
     
     if (this.activeResourceType === 'AWS::RDS::DBInstance') {
-      return ['Engine', 'DBInstanceClass', 'AllocatedStorage', 'MasterUsername'];
+      return ['Engine', 'DBInstanceClass', 'AllocatedStorage'];
     }
     
     if (this.activeResourceType === 'AWS::ApiGateway::RestApi') {
-      return ['Name', 'Description', 'EndpointConfiguration', 'Body'];
+      return ['EndpointConfiguration', 'Body'];
     }
     
     if (this.activeResourceType === 'AWS::CloudFront::Distribution') {
-      return ['DistributionConfig', 'Origins', 'DefaultCacheBehavior', 'ViewerCertificate'];
+      return ['DistributionConfig', 'Origins', 'DefaultCacheBehavior'];
     }
     
-    // Para otros tipos, buscar propiedades comunes
+    // Para otros tipos, buscar propiedades no vacías
     const resources = this.getFilteredResourceComponents();
-    const propertiesSet = new Set<string>();
+    const propertiesMap = new Map<string, number>(); // Propiedad -> Conteo de valores no vacíos
     
     resources.forEach(resource => {
       const propertiesNode = resource.children.find(prop => prop.id === 'Properties');
       if (propertiesNode && propertiesNode.children) {
         propertiesNode.children.forEach(prop => {
-          propertiesSet.add(prop.id);
+          // Contar solo si tiene valor o es complejo
+          if (prop.value || prop.isComplex || (prop.children && prop.children.length > 0)) {
+            const count = propertiesMap.get(prop.id) || 0;
+            propertiesMap.set(prop.id, count + 1);
+          }
         });
       }
     });
     
-    // Limitar a un máximo de 5 propiedades para no sobrecargar la tabla
-    return Array.from(propertiesSet).slice(0, 5);
+    // Ordenar por frecuencia y tomar las más comunes
+    const sortedProperties = Array.from(propertiesMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(entry => entry[0]);
+    
+    return sortedProperties.slice(0, 4); // Limitar a 4 propiedades
   }
   
   getPropertyDisplayName(propertyName: string): string {
@@ -519,7 +527,11 @@ export class TemplateValidatorComponent implements OnInit {
     const property = propertiesNode.children.find(prop => prop.id === propertyName);
     if (!property) return false;
     
-    return !property.isComplex && property.value !== undefined && property.value !== null;
+    // Verificar si tiene valor y no es complejo
+    return !property.isComplex && 
+           property.value !== undefined && 
+           property.value !== null && 
+           property.value !== '';
   }
   
   isListPropertyInResource(resource: TemplateNode, propertyName: string): boolean {
@@ -638,7 +650,7 @@ export class TemplateValidatorComponent implements OnInit {
   
   getParameterProperty(param: TemplateNode, propertyName: string): string {
     const property = param.children.find(prop => prop.id === propertyName);
-    return property ? property.value : '';
+    return property && property.value ? property.value : '';
   }
   
   getParameterAllowedValues(param: TemplateNode): string[] {
@@ -688,20 +700,8 @@ export class TemplateValidatorComponent implements OnInit {
   }
   
   getMappingStructure(mapping: TemplateNode): string {
-    const structure: any = {};
-    
-    mapping.children.forEach(firstLevel => {
-      structure[firstLevel.id] = {};
-      
-      if (firstLevel.children) {
-        firstLevel.children.forEach(secondLevel => {
-          structure[firstLevel.id][secondLevel.id] = secondLevel.value || 
-            (secondLevel.children ? '...' : '');
-        });
-      }
-    });
-    
-    return JSON.stringify(structure, null, 2);
+    // Usar directamente el extracto para preservar la estructura exacta
+    return mapping.extract || '';
   }
   
   toggleMappingDetails(mappingId: string): void {
@@ -741,8 +741,23 @@ export class TemplateValidatorComponent implements OnInit {
     // Convertir la condición a un formato JSON legible
     const conditionObj: any = {};
     condition.children.forEach(child => {
-      conditionObj[child.id] = child.value || 
-        (child.children && child.children.length > 0 ? '...' : '');
+      if (child.children && child.children.length > 0) {
+        const nestedValues: any = {};
+        child.children.forEach(grandChild => {
+          if (grandChild.children && grandChild.children.length > 0) {
+            const deepValues: any = {};
+            grandChild.children.forEach(greatGrandChild => {
+              deepValues[greatGrandChild.id] = greatGrandChild.value || '';
+            });
+            nestedValues[grandChild.id] = deepValues;
+          } else {
+            nestedValues[grandChild.id] = grandChild.value || '';
+          }
+        });
+        conditionObj[child.id] = nestedValues;
+      } else {
+        conditionObj[child.id] = child.value || '';
+      }
     });
     
     return JSON.stringify(conditionObj, null, 2);
