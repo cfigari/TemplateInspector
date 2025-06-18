@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { HttpClientModule } from '@angular/common/http';
+import { VersionService } from '../../../services/version.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -22,11 +23,19 @@ export class SidebarComponent implements OnInit {
 
   version = {
     number: '0.1.0',
-    build: '1'
+    build: '1',
+    commit: '',
+    date: ''
   };
 
+  constructor(private versionService: VersionService) {}
+
   ngOnInit() {
-    // En una implementación real, cargaríamos la versión desde un servicio
-    // Por ahora, usamos valores estáticos
+    this.versionService.getVersion().subscribe(versionInfo => {
+      this.version.number = versionInfo.version;
+      this.version.build = versionInfo.build.toString();
+      this.version.commit = versionInfo.lastCommit;
+      this.version.date = versionInfo.date;
+    });
   }
 }

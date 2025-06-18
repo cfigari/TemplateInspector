@@ -10,7 +10,9 @@
   
   <!-- Versión en la parte inferior -->
   <div class="version-info">
-    <span>v{{ version.number }}</span>
+    <span class="version-number">v{{ version.number }}</span>
     <span class="build-number">build {{ version.build }}</span>
+    <span class="commit-hash">{{ version.commit }}</span>
+    <span class="commit-date">{{ version.date }}</span>
   </div>
 </div>
