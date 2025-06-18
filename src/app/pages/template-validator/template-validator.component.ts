@@ -805,6 +805,11 @@ export class TemplateValidatorComponent implements OnInit {
     this.modalService.show(title, content);
   }
   
+  showGlobalExtract(key: string, value: any): void {
+    const jsonContent = JSON.stringify(value, null, 2);
+    this.modalService.show(key, jsonContent);
+  }
+  
   copyModalContent(): void {
     this.modalService.copyContent()
       .then(() => {
