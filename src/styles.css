@@ -4,18 +4,33 @@
 :root {
   --header-height: 60px;
   --sidebar-width: 60px;
-  --primary-color: #FF9900; /* Color naranja de AWS */
-  --secondary-color: #232F3E; /* Color azul oscuro de AWS */
-  --accent-color: #3498db; /* Color de acento */
-  --success-color: #28a745; /* Color de éxito */
-  --danger-color: #dc3545; /* Color de peligro */
-  --warning-color: #ffc107; /* Color de advertencia */
-  --background-color: #f8f9fa; /* Color de fondo */
-  --surface-color: #ffffff; /* Color de superficie */
-  --text-color: #333; /* Color de texto */
-  --text-secondary-color: #6c757d; /* Color de texto secundario */
+  --primary-color: #FF9900;
+  --secondary-color: #232F3E;
+  --accent-color: #3498db;
+  --success-color: #28a745;
+  --danger-color: #dc3545;
+  --warning-color: #ffc107;
+  --background-color: #f8f9fa;
+  --surface-color: #ffffff;
+  --text-color: #333;
+  --text-secondary-color: #6c757d;
   
-  /* Mantener compatibilidad con variables existentes */
+  /* Variables de configuración por componente */
+  --titles-font-size: 2rem;
+  --titles-font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  --titles-font-weight: 700;
+  --titles-line-height: 1.2;
+  --titles-letter-spacing: -0.025em;
+  --titles-text-transform: none;
+  --titles-color: var(--text-color);
+  --titles-background-color: transparent;
+  --titles-border-radius: 0;
+  --titles-padding: 0;
+  --titles-margin: 0 0 1.5rem 0;
+  --titles-border: none;
+  --titles-box-shadow: none;
+  
+  /* Mantener compatibilidad */
   --sidebar-bg: var(--secondary-color);
   --header-bg: var(--surface-color);
   --content-bg: var(--background-color);
@@ -24,11 +39,203 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--forms-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  font-size: var(--forms-font-size, 14px);
   overflow: hidden;
   height: 100vh;
   background-color: var(--background-color);
   color: var(--text-color);
+}
+
+/* Clases condicionales para configuraciones globales */
+body.no-shadows * {
+  box-shadow: none !important;
+}
+
+body.no-animations * {
+  transition: none !important;
+  animation: none !important;
+}
+
+body.compact-mode .card {
+  margin-bottom: 0.75rem;
+}
+
+body.compact-mode .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Aplicar configuraciones por componente */
+
+/* Títulos */
+h1, h2, .h1, .h2 {
+  font-size: var(--titles-font-size) !important;
+  font-family: var(--titles-font-family) !important;
+  font-weight: var(--titles-font-weight) !important;
+  line-height: var(--titles-line-height) !important;
+  letter-spacing: var(--titles-letter-spacing) !important;
+  text-transform: var(--titles-text-transform) !important;
+  color: var(--titles-color) !important;
+  margin: var(--titles-margin) !important;
+}
+
+/* Subtítulos */
+h3, h4, h5, .h3, .h4, .h5, .card-title {
+  font-size: var(--subtitles-font-size) !important;
+  font-family: var(--subtitles-font-family) !important;
+  font-weight: var(--subtitles-font-weight) !important;
+  line-height: var(--subtitles-line-height) !important;
+  letter-spacing: var(--subtitles-letter-spacing) !important;
+  text-transform: var(--subtitles-text-transform) !important;
+  color: var(--subtitles-color) !important;
+  margin: var(--subtitles-margin) !important;
+}
+
+/* Botones */
+.btn {
+  font-size: var(--buttons-font-size) !important;
+  font-family: var(--buttons-font-family) !important;
+  font-weight: var(--buttons-font-weight) !important;
+  line-height: var(--buttons-line-height) !important;
+  letter-spacing: var(--buttons-letter-spacing) !important;
+  text-transform: var(--buttons-text-transform) !important;
+  border-radius: var(--buttons-border-radius) !important;
+  padding: var(--buttons-padding) !important;
+  margin: var(--buttons-margin) !important;
+  border: var(--buttons-border) !important;
+  box-shadow: var(--buttons-box-shadow) !important;
+}
+
+/* Tabs */
+.nav-tabs .nav-link {
+  font-size: var(--tabs-font-size) !important;
+  font-family: var(--tabs-font-family) !important;
+  font-weight: var(--tabs-font-weight) !important;
+  line-height: var(--tabs-line-height) !important;
+  letter-spacing: var(--tabs-letter-spacing) !important;
+  text-transform: var(--tabs-text-transform) !important;
+  border-radius: var(--tabs-border-radius) !important;
+  padding: var(--tabs-padding) !important;
+  margin: var(--tabs-margin) !important;
+  border: var(--tabs-border) !important;
+}
+
+/* Tablas */
+.table {
+  font-size: var(--tables-font-size) !important;
+  font-family: var(--tables-font-family) !important;
+  font-weight: var(--tables-font-weight) !important;
+  line-height: var(--tables-line-height) !important;
+  letter-spacing: var(--tables-letter-spacing) !important;
+  text-transform: var(--tables-text-transform) !important;
+  color: var(--tables-color) !important;
+  background-color: var(--tables-background-color) !important;
+  border-radius: var(--tables-border-radius) !important;
+  border: var(--tables-border) !important;
+  box-shadow: var(--tables-box-shadow) !important;
+}
+
+/* Encabezados de tabla */
+.table thead th {
+  font-size: var(--table-headers-font-size) !important;
+  font-family: var(--table-headers-font-family) !important;
+  font-weight: var(--table-headers-font-weight) !important;
+  line-height: var(--table-headers-line-height) !important;
+  letter-spacing: var(--table-headers-letter-spacing) !important;
+  text-transform: var(--table-headers-text-transform) !important;
+  color: var(--table-headers-color) !important;
+  background-color: var(--table-headers-background-color) !important;
+  padding: var(--table-headers-padding) !important;
+}
+
+/* Cards */
+.card {
+  font-size: var(--cards-font-size) !important;
+  font-family: var(--cards-font-family) !important;
+  font-weight: var(--cards-font-weight) !important;
+  line-height: var(--cards-line-height) !important;
+  letter-spacing: var(--cards-letter-spacing) !important;
+  text-transform: var(--cards-text-transform) !important;
+  color: var(--cards-color) !important;
+  background-color: var(--cards-background-color) !important;
+  border-radius: var(--cards-border-radius) !important;
+  padding: var(--cards-padding) !important;
+  margin: var(--cards-margin) !important;
+  border: var(--cards-border) !important;
+  box-shadow: var(--cards-box-shadow) !important;
+}
+
+/* Encabezados de card */
+.card-header {
+  font-size: var(--card-headers-font-size) !important;
+  font-family: var(--card-headers-font-family) !important;
+  font-weight: var(--card-headers-font-weight) !important;
+  line-height: var(--card-headers-line-height) !important;
+  letter-spacing: var(--card-headers-letter-spacing) !important;
+  text-transform: var(--card-headers-text-transform) !important;
+  padding: var(--card-headers-padding) !important;
+  margin: var(--card-headers-margin) !important;
+}
+
+/* Formularios */
+.form-control, .form-select {
+  font-size: var(--forms-font-size) !important;
+  font-family: var(--forms-font-family) !important;
+  font-weight: var(--forms-font-weight) !important;
+  line-height: var(--forms-line-height) !important;
+  letter-spacing: var(--forms-letter-spacing) !important;
+  text-transform: var(--forms-text-transform) !important;
+  color: var(--forms-color) !important;
+  background-color: var(--forms-background-color) !important;
+  border-radius: var(--forms-border-radius) !important;
+  padding: var(--forms-padding) !important;
+  margin: var(--forms-margin) !important;
+  border: var(--forms-border) !important;
+  box-shadow: var(--forms-box-shadow) !important;
+}
+
+/* Badges */
+.badge {
+  font-size: var(--badges-font-size) !important;
+  font-family: var(--badges-font-family) !important;
+  font-weight: var(--badges-font-weight) !important;
+  line-height: var(--badges-line-height) !important;
+  letter-spacing: var(--badges-letter-spacing) !important;
+  text-transform: var(--badges-text-transform) !important;
+  border-radius: var(--badges-border-radius) !important;
+  padding: var(--badges-padding) !important;
+  margin: var(--badges-margin) !important;
+}
+
+/* Alertas */
+.alert {
+  font-size: var(--alerts-font-size) !important;
+  font-family: var(--alerts-font-family) !important;
+  font-weight: var(--alerts-font-weight) !important;
+  line-height: var(--alerts-line-height) !important;
+  letter-spacing: var(--alerts-letter-spacing) !important;
+  text-transform: var(--alerts-text-transform) !important;
+  color: var(--alerts-color) !important;
+  background-color: var(--alerts-background-color) !important;
+  border-radius: var(--alerts-border-radius) !important;
+  padding: var(--alerts-padding) !important;
+  margin: var(--alerts-margin) !important;
+  border: var(--alerts-border) !important;
+}
+
+/* Modales */
+.modal-content {
+  font-size: var(--modals-font-size) !important;
+  font-family: var(--modals-font-family) !important;
+  font-weight: var(--modals-font-weight) !important;
+  line-height: var(--modals-line-height) !important;
+  letter-spacing: var(--modals-letter-spacing) !important;
+  text-transform: var(--modals-text-transform) !important;
+  color: var(--modals-color) !important;
+  background-color: var(--modals-background-color) !important;
+  border-radius: var(--modals-border-radius) !important;
+  box-shadow: var(--modals-box-shadow) !important;
 }
 
 .app-container {
@@ -52,7 +259,6 @@ body {
   margin-left: var(--sidebar-width);
 }
 
-/* Estilos para la barra superior */
 .header {
   height: var(--header-height);
   background-color: var(--header-bg);
@@ -64,7 +270,6 @@ body {
   z-index: 1000;
 }
 
-/* Estilos para la barra lateral */
 .sidebar {
   width: var(--sidebar-width);
   background-color: var(--sidebar-bg);
@@ -96,13 +301,6 @@ body {
   font-size: 1.5rem;
 }
 
-/* Utilidades */
-.text-truncate {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* Colores personalizables */
 .text-primary {
   color: var(--primary-color) !important;
@@ -131,20 +329,6 @@ body {
   opacity: 0.9;
 }
 
-.btn-primary:focus,
-.btn-primary.focus {
-  background-color: var(--primary-color) !important;
-  border-color: var(--primary-color) !important;
-  box-shadow: 0 0 0 0.2rem rgba(255, 153, 0, 0.25) !important;
-}
-
-.btn-primary:not(:disabled):not(.disabled):active,
-.btn-primary:not(:disabled):not(.disabled).active {
-  background-color: var(--primary-color) !important;
-  border-color: var(--primary-color) !important;
-}
-
-/* Botones outline personalizados */
 .btn-outline-primary {
   color: var(--primary-color) !important;
   border-color: var(--primary-color) !important;
@@ -178,7 +362,6 @@ body {
   color: white !important;
 }
 
-/* Tabs personalizados */
 .nav-tabs .nav-link.active {
   background-color: var(--primary-color) !important;
   color: white !important;
@@ -190,32 +373,14 @@ body {
   color: var(--primary-color) !important;
 }
 
-/* Badges */
 .badge.bg-secondary {
   background-color: var(--secondary-color) !important;
 }
 
-/* Cards de validación */
 .card-header.bg-success {
   background-color: var(--success-color) !important;
 }
 
 .card-header.bg-danger {
   background-color: var(--danger-color) !important;
-}
-
-.placeholder-chart {
-  height: 250px;
-  background-color: var(--background-color);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.placeholder-chart::after {
-  content: "Gráfico de recursos";
-  color: var(--text-secondary-color);
-  font-size: 1.2rem;
 }

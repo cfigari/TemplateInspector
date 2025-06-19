@@ -37,6 +37,10 @@
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
+.config-icon {
+  font-size: 1.2rem;
+}
+
 .current-indicator {
   font-size: 1.1rem;
 }
@@ -89,32 +93,118 @@
   padding: 0;
 }
 
-.preview-section {
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.config-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
   border: 1px solid #dee2e6;
-  border-radius: 8px;
-  padding: 20px;
+  border-radius: 6px;
   background-color: #f8f9fa;
 }
 
-.preview-card {
+.config-name {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.config-value {
+  font-size: 0.8rem;
+  color: #6c757d;
+  background-color: transparent;
+  padding: 2px 4px;
+  border-radius: 3px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.component-configs {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.component-section {
+  padding: 12px;
   border: 1px solid #dee2e6;
   border-radius: 6px;
-  overflow: hidden;
-  max-width: 400px;
+  background-color: #f8f9fa;
+  margin-bottom: 10px;
 }
 
-.preview-header {
-  padding: 12px 16px;
+.component-title {
+  font-size: 0.9rem;
   font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--primary-color);
 }
 
-.preview-body {
-  padding: 16px;
+.component-details {
+  font-size: 0.8rem;
 }
 
-.preview-buttons {
+/* Estilos para el formulario de configuración por componente */
+.component-config-sections {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 15px;
+  background-color: #f8f9fa;
+}
+
+.component-config-section {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.component-config-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.component-config-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--primary-color);
+  background-color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+/* Vista previa de componentes */
+.component-preview {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: white;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+}
+
+.preview-sample {
+  color: #333;
+  background-color: transparent;
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: inherit;
+  text-align: center;
+  transition: all 0.2s ease;
+  min-height: 40px;
   display: flex;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
 }
 
 .header-actions {
@@ -138,7 +228,7 @@
 
 .custom-palette-form {
   width: 90%;
-  max-width: 600px;
+  max-width: 900px;
   max-height: 90vh;
   overflow-y: auto;
 }
@@ -174,6 +264,23 @@
   font-size: 0.8rem;
 }
 
+/* Tabs personalizados */
+.nav-tabs .nav-link {
+  color: var(--text-color);
+  border: 1px solid transparent;
+}
+
+.nav-tabs .nav-link:hover {
+  border-color: var(--primary-color) var(--primary-color) #dee2e6;
+  color: var(--primary-color);
+}
+
+.nav-tabs .nav-link.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color) var(--primary-color) #fff;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .palette-list {
@@ -182,7 +289,8 @@
     max-height: 300px;
   }
   
-  .colors-grid {
+  .colors-grid,
+  .config-grid {
     grid-template-columns: 1fr;
   }
   
@@ -197,5 +305,14 @@
   
   .form-control-color {
     width: 100%;
+  }
+  
+  .custom-palette-form {
+    width: 95%;
+    max-width: none;
+  }
+  
+  .component-config-sections {
+    max-height: 300px;
   }
 }

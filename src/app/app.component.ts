@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { HeaderComponent } from './core/layout/header/header.component';
 import { SidebarComponent } from './core/layout/sidebar/sidebar.component';
 import { ThemeService } from './services/theme.service';
+import { FrontendConfigService } from './services/frontend-config.service';
 
 @Component({
   selector: 'app-root',
@@ -15,9 +16,12 @@ import { ThemeService } from './services/theme.service';
 export class AppComponent implements OnInit {
   title = 'TemplateInspector';
 
-  constructor(private themeService: ThemeService) {}
+  constructor(
+    private themeService: ThemeService,
+    private frontendConfigService: FrontendConfigService
+  ) {}
 
   ngOnInit(): void {
-    // El servicio se inicializa automáticamente y carga el tema guardado
+    // Los servicios se inicializan automáticamente y cargan las configuraciones guardadas
   }
 }

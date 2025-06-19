@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ThemeService, ColorPalette } from '../../services/theme.service';
+import { FrontendConfigService, FrontendConfig } from '../../services/frontend-config.service';
 
 @Component({
   selector: 'app-settings',
@@ -11,6 +12,7 @@ import { ThemeService, ColorPalette } from '../../services/theme.service';
   styleUrl: './settings.component.css'
 })
 export class SettingsComponent implements OnInit {
+  // Paletas de colores
   availablePalettes: ColorPalette[] = [];
   currentTheme: ColorPalette | null = null;
   selectedPalette: ColorPalette | null = null;
@@ -33,23 +35,50 @@ export class SettingsComponent implements OnInit {
     }
   };
 
-  constructor(private themeService: ThemeService) {}
+  // Configuraciones de frontend
+  availableConfigs: FrontendConfig[] = [];
+  currentConfig: FrontendConfig | null = null;
+  selectedConfig: FrontendConfig | null = null;
+  showCustomConfigForm = false;
+  editingConfig = false;
+  
+  customConfig!: FrontendConfig;
+
+  activeTab = 'colors';
+
+  constructor(
+    private themeService: ThemeService,
+    private frontendConfigService: FrontendConfigService
+  ) {
+    this.customConfig = this.frontendConfigService.createEmptyConfig();
+  }
 
   ngOnInit(): void {
     this.loadPalettes();
+    this.loadConfigs();
+    
     this.themeService.currentTheme$.subscribe(theme => {
       this.currentTheme = theme;
       this.selectedPalette = theme;
     });
+
+    this.frontendConfigService.currentConfig$.subscribe(config => {
+      this.currentConfig = config;
+      this.selectedConfig = config;
+    });
   }
 
+  setActiveTab(tab: string): void {
+    this.activeTab = tab;
+  }
+
+  // Métodos para paletas
   loadPalettes(): void {
     this.availablePalettes = this.themeService.getAllPalettes();
   }
 
   selectPalette(palette: ColorPalette): void {
     this.selectedPalette = palette;
-    // Aplicar automáticamente las paletas predefinidas
     if (!this.isCustomPalette(palette)) {
       this.themeService.setTheme(palette);
     }
@@ -91,12 +120,10 @@ export class SettingsComponent implements OnInit {
       await this.themeService.removeCustomPalette(palette.id);
       this.loadPalettes();
       
-      // Si era la paleta seleccionada, cambiar a la primera disponible
       if (this.selectedPalette?.id === palette.id) {
         this.selectedPalette = this.themeService.getDefaultPalettes()[0];
       }
       
-      // Si era la paleta actual, cambiar a la primera disponible
       if (this.isCurrentTheme(palette)) {
         this.themeService.setTheme(this.themeService.getDefaultPalettes()[0]);
       }
@@ -144,5 +171,121 @@ export class SettingsComponent implements OnInit {
         textSecondary: '#6c757d'
       }
     };
+  }
+
+  // Métodos para configuraciones de frontend
+  loadConfigs(): void {
+    this.availableConfigs = this.frontendConfigService.getAllConfigs();
+  }
+
+  selectConfig(config: FrontendConfig): void {
+    this.selectedConfig = config;
+    if (!this.isCustomConfig(config)) {
+      this.frontendConfigService.setConfig(config);
+    }
+  }
+
+  applySelectedConfig(): void {
+    if (this.selectedConfig) {
+      this.frontendConfigService.setConfig(this.selectedConfig);
+    }
+  }
+
+  isCurrentConfig(config: FrontendConfig): boolean {
+    return this.currentConfig?.id === config.id;
+  }
+
+  showAddCustomConfig(): void {
+    this.editingConfig = false;
+    this.showCustomConfigForm = true;
+    this.resetCustomConfig();
+  }
+
+  editCustomConfig(config: FrontendConfig): void {
+    this.editingConfig = true;
+    this.showCustomConfigForm = true;
+    this.customConfig = JSON.parse(JSON.stringify(config)); // Deep copy
+  }
+
+  hideCustomConfigForm(): void {
+    this.showCustomConfigForm = false;
+    this.editingConfig = false;
+  }
+
+  async saveCustomConfig(): Promise<void> {
+    if (!this.customConfig.name.trim()) {
+      alert('Por favor ingresa un nombre para la configuración');
+      return;
+    }
+
+    if (this.editingConfig) {
+      // Actualizar configuración existente
+      await this.frontendConfigService.removeCustomConfig(this.customConfig.id);
+      await this.frontendConfigService.addCustomConfig({ ...this.customConfig });
+    } else {
+      // Crear nueva configuración
+      this.customConfig.id = this.frontendConfigService.generateConfigId();
+      await this.frontendConfigService.addCustomConfig({ ...this.customConfig });
+    }
+    
+    this.loadConfigs();
+    this.hideCustomConfigForm();
+  }
+
+  async removeCustomConfig(config: FrontendConfig): Promise<void> {
+    if (confirm(`¿Estás seguro de eliminar la configuración "${config.name}"?`)) {
+      await this.frontendConfigService.removeCustomConfig(config.id);
+      this.loadConfigs();
+      
+      if (this.selectedConfig?.id === config.id) {
+        this.selectedConfig = this.frontendConfigService.getDefaultConfigs()[0];
+      }
+      
+      if (this.isCurrentConfig(config)) {
+        this.frontendConfigService.setConfig(this.frontendConfigService.getDefaultConfigs()[0]);
+      }
+    }
+  }
+
+  isCustomConfig(config: FrontendConfig): boolean {
+    return config.id.startsWith('custom-');
+  }
+
+  updateCustomConfigComponent(componentKey: string, propertyKey: string, value: any): void {
+    (this.customConfig.components as any)[componentKey][propertyKey] = value;
+  }
+
+  updateCustomConfigGlobal(propertyKey: string, value: any): void {
+    (this.customConfig.global as any)[propertyKey] = value;
+  }
+
+  getFontFamilies(): { name: string; value: string }[] {
+    return this.frontendConfigService.getFontFamilies();
+  }
+
+  getComponentDisplayNames(): { [key: string]: string } {
+    return this.frontendConfigService.getComponentDisplayNames();
+  }
+
+  getPreviewText(componentKey: string): string {
+    const previewTexts: { [key: string]: string } = {
+      titles: 'Título Principal H1',
+      subtitles: 'Subtítulo H3',
+      buttons: 'Botón de Acción',
+      tabs: 'Pestaña',
+      tables: 'Contenido de Tabla',
+      tableHeaders: 'ENCABEZADO',
+      cards: 'Contenido de tarjeta con texto descriptivo',
+      cardHeaders: 'Encabezado de Tarjeta',
+      forms: 'Campo de formulario',
+      badges: 'BADGE',
+      alerts: 'Mensaje de alerta informativo',
+      modals: 'Contenido de modal'
+    };
+    return previewTexts[componentKey] || 'Texto de ejemplo';
+  }
+
+  private resetCustomConfig(): void {
+    this.customConfig = this.frontendConfigService.createEmptyConfig();
   }
 }

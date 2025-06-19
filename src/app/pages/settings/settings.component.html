@@ -1,139 +1,263 @@
 <div class="container-fluid p-4">
   <h2 class="mb-4">Configuración</h2>
 
-  <!-- Card único con layout dividido -->
-  <div class="card shadow-sm">
-    <div class="card-header">
-      <div class="d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-          <i class="bi bi-palette me-2"></i>
-          Paletas de Colores
-        </h5>
-        <div class="header-actions">
-          <button class="btn btn-outline-primary btn-sm me-2" (click)="showAddCustomPalette()" title="Crear paleta personalizada">
-            <i class="bi bi-plus-circle"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-    
-    <div class="card-body p-0">
-      <div class="row g-0">
-        
-        <!-- Lista de paletas (izquierda) -->
-        <div class="col-md-4 palette-list">
-          <div class="list-group list-group-flush">
-            <div class="list-group-item list-group-item-action p-3" 
-                 *ngFor="let palette of availablePalettes"
-                 [class.active]="selectedPalette?.id === palette.id"
-                 (click)="selectPalette(palette)">
-              
-              <div class="d-flex align-items-center">
-                <!-- Preview de colores -->
-                <div class="color-preview me-3">
-                  <div class="color-dot" [style.background-color]="palette.colors.primary"></div>
-                  <div class="color-dot" [style.background-color]="palette.colors.secondary"></div>
-                  <div class="color-dot" [style.background-color]="palette.colors.accent"></div>
-                </div>
-                
-                <!-- Información de la paleta -->
-                <div class="flex-grow-1">
-                  <h6 class="mb-1">{{ palette.name }}</h6>
-                  <small class="text-muted">{{ isCustomPalette(palette) ? 'Personalizada' : 'Predefinida' }}</small>
-                </div>
-                
-                <!-- Indicador de tema actual -->
-                <div class="current-indicator" *ngIf="isCurrentTheme(palette)">
-                  <i class="bi bi-check-circle-fill text-success"></i>
-                </div>
-              </div>
-            </div>
+  <!-- Tabs de navegación -->
+  <ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'colors'" (click)="setActiveTab('colors')">
+        <i class="bi bi-palette me-2"></i>
+        Paletas de Colores
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'frontend'" (click)="setActiveTab('frontend')">
+        <i class="bi bi-sliders me-2"></i>
+        Configuración Frontend
+      </a>
+    </li>
+  </ul>
+
+  <!-- Tab de Paletas de Colores -->
+  <div *ngIf="activeTab === 'colors'">
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="bi bi-palette me-2"></i>
+            Paletas de Colores
+          </h5>
+          <div class="header-actions">
+            <button class="btn btn-outline-primary btn-sm me-2" (click)="showAddCustomPalette()" title="Crear paleta personalizada">
+              <i class="bi bi-plus-circle"></i>
+            </button>
           </div>
         </div>
-        
-        <!-- Configuración de la paleta seleccionada (derecha) -->
-        <div class="col-md-8 palette-config">
-          <div class="p-4" *ngIf="selectedPalette">
-            
-            <!-- Información de la paleta -->
-            <div class="mb-4">
-              <h5>{{ selectedPalette.name }}</h5>
-              <p class="text-muted mb-3">
-                {{ isCustomPalette(selectedPalette) ? 'Paleta personalizada' : 'Paleta predefinida' }}
-              </p>
-              
-              <!-- Botones de acción solo para paletas personalizadas -->
-              <div class="d-flex gap-2" *ngIf="isCustomPalette(selectedPalette)">
-                <button class="btn btn-primary" 
-                        (click)="applySelectedPalette()"
-                        [disabled]="isCurrentTheme(selectedPalette)">
-                  <i class="bi bi-check-circle me-2"></i>
-                  {{ isCurrentTheme(selectedPalette) ? 'Tema Actual' : 'Aplicar Tema' }}
-                </button>
+      </div>
+      
+      <div class="card-body p-0">
+        <div class="row g-0">
+          
+          <!-- Lista de paletas (izquierda) -->
+          <div class="col-md-4 palette-list">
+            <div class="list-group list-group-flush">
+              <div class="list-group-item list-group-item-action p-3" 
+                   *ngFor="let palette of availablePalettes"
+                   [class.active]="selectedPalette?.id === palette.id"
+                   (click)="selectPalette(palette)">
                 
-                <button class="btn btn-outline-danger" 
-                        (click)="removeCustomPalette(selectedPalette)" 
-                        title="Eliminar esta paleta">
-                  <i class="bi bi-trash me-2"></i>
-                  Eliminar Paleta
-                </button>
-              </div>
-              
-              <!-- Mensaje para paletas predefinidas -->
-              <div *ngIf="!isCustomPalette(selectedPalette)" class="alert alert-info">
-                <i class="bi bi-info-circle me-2"></i>
-                Esta paleta se aplica automáticamente al seleccionarla
-              </div>
-            </div>
-            
-            <!-- Colores de la paleta -->
-            <div class="colors-grid">
-              <div class="color-item" *ngFor="let color of selectedPalette.colors | keyvalue">
-                <div class="color-sample" [style.background-color]="color.value"></div>
-                <div class="color-info">
-                  <span class="color-name">{{ getColorDisplayName(color.key) }}</span>
-                  <code class="color-value">{{ color.value }}</code>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Vista previa -->
-            <div class="preview-section mt-4">
-              <h6 class="mb-3">Vista Previa</h6>
-              <div class="preview-card">
-                <div class="preview-header" [style.background-color]="selectedPalette.colors.primary">
-                  <span [style.color]="selectedPalette.colors.surface">Encabezado Principal</span>
-                </div>
-                <div class="preview-body" [style.background-color]="selectedPalette.colors.surface">
-                  <p [style.color]="selectedPalette.colors.text" class="mb-2">Texto principal del contenido</p>
-                  <p [style.color]="selectedPalette.colors.textSecondary" class="mb-3">Texto secundario</p>
+                <div class="d-flex align-items-center">
+                  <!-- Preview de colores -->
+                  <div class="color-preview me-3">
+                    <div class="color-dot" [style.background-color]="palette.colors.primary"></div>
+                    <div class="color-dot" [style.background-color]="palette.colors.secondary"></div>
+                    <div class="color-dot" [style.background-color]="palette.colors.accent"></div>
+                  </div>
                   
-                  <div class="preview-buttons">
-                    <button class="btn btn-sm me-2" 
-                            [style.background-color]="selectedPalette.colors.primary"
-                            [style.color]="selectedPalette.colors.surface">
-                      Primario
-                    </button>
-                    <button class="btn btn-sm me-2" 
-                            [style.background-color]="selectedPalette.colors.success"
-                            [style.color]="selectedPalette.colors.surface">
-                      Éxito
-                    </button>
-                    <button class="btn btn-sm" 
-                            [style.background-color]="selectedPalette.colors.danger"
-                            [style.color]="selectedPalette.colors.surface">
-                      Peligro
-                    </button>
+                  <!-- Información de la paleta -->
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1">{{ palette.name }}</h6>
+                    <small class="text-muted">{{ isCustomPalette(palette) ? 'Personalizada' : 'Predefinida' }}</small>
+                  </div>
+                  
+                  <!-- Indicador de tema actual -->
+                  <div class="current-indicator" *ngIf="isCurrentTheme(palette)">
+                    <i class="bi bi-check-circle-fill text-success"></i>
                   </div>
                 </div>
               </div>
             </div>
           </div>
           
-          <!-- Mensaje cuando no hay paleta seleccionada -->
-          <div class="p-4 text-center text-muted" *ngIf="!selectedPalette">
-            <i class="bi bi-palette display-4 mb-3"></i>
-            <p>Selecciona una paleta de la lista para ver su configuración</p>
+          <!-- Configuración de la paleta seleccionada (derecha) -->
+          <div class="col-md-8 palette-config">
+            <div class="p-4" *ngIf="selectedPalette">
+              
+              <!-- Información de la paleta -->
+              <div class="mb-4">
+                <h5>{{ selectedPalette.name }}</h5>
+                <p class="text-muted mb-3">
+                  {{ isCustomPalette(selectedPalette) ? 'Paleta personalizada' : 'Paleta predefinida' }}
+                </p>
+                
+                <!-- Botones de acción solo para paletas personalizadas -->
+                <div class="d-flex gap-2" *ngIf="isCustomPalette(selectedPalette)">
+                  <button class="btn btn-primary" 
+                          (click)="applySelectedPalette()"
+                          [disabled]="isCurrentTheme(selectedPalette)">
+                    <i class="bi bi-check-circle me-2"></i>
+                    {{ isCurrentTheme(selectedPalette) ? 'Tema Actual' : 'Aplicar Tema' }}
+                  </button>
+                  
+                  <button class="btn btn-outline-danger" 
+                          (click)="removeCustomPalette(selectedPalette)" 
+                          title="Eliminar esta paleta">
+                    <i class="bi bi-trash me-2"></i>
+                    Eliminar Paleta
+                  </button>
+                </div>
+                
+                <!-- Mensaje para paletas predefinidas -->
+                <div *ngIf="!isCustomPalette(selectedPalette)" class="alert alert-info">
+                  <i class="bi bi-info-circle me-2"></i>
+                  Esta paleta se aplica automáticamente al seleccionarla
+                </div>
+              </div>
+              
+              <!-- Colores de la paleta -->
+              <div class="colors-grid">
+                <div class="color-item" *ngFor="let color of selectedPalette.colors | keyvalue">
+                  <div class="color-sample" [style.background-color]="color.value"></div>
+                  <div class="color-info">
+                    <span class="color-name">{{ getColorDisplayName(color.key) }}</span>
+                    <code class="color-value">{{ color.value }}</code>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Mensaje cuando no hay paleta seleccionada -->
+            <div class="p-4 text-center text-muted" *ngIf="!selectedPalette">
+              <i class="bi bi-palette display-4 mb-3"></i>
+              <p>Selecciona una paleta de la lista para ver su configuración</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab de Configuración Frontend -->
+  <div *ngIf="activeTab === 'frontend'">
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="bi bi-sliders me-2"></i>
+            Configuración Frontend
+          </h5>
+          <div class="header-actions">
+            <button class="btn btn-outline-primary btn-sm me-2" (click)="showAddCustomConfig()" title="Crear configuración personalizada">
+              <i class="bi bi-plus-circle"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card-body p-0">
+        <div class="row g-0">
+          
+          <!-- Lista de configuraciones (izquierda) -->
+          <div class="col-md-4 palette-list">
+            <div class="list-group list-group-flush">
+              <div class="list-group-item list-group-item-action p-3" 
+                   *ngFor="let config of availableConfigs"
+                   [class.active]="selectedConfig?.id === config.id"
+                   (click)="selectConfig(config)">
+                
+                <div class="d-flex align-items-center">
+                  <!-- Icono de configuración -->
+                  <div class="config-icon me-3">
+                    <i class="bi bi-gear-fill text-primary"></i>
+                  </div>
+                  
+                  <!-- Información de la configuración -->
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1">{{ config.name }}</h6>
+                    <small class="text-muted">{{ isCustomConfig(config) ? 'Personalizada' : 'Predefinida' }}</small>
+                  </div>
+                  
+                  <!-- Indicador de configuración actual -->
+                  <div class="current-indicator" *ngIf="isCurrentConfig(config)">
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Configuración seleccionada (derecha) -->
+          <div class="col-md-8 palette-config">
+            <div class="p-4" *ngIf="selectedConfig">
+              
+              <!-- Información de la configuración -->
+              <div class="mb-4">
+                <h5>{{ selectedConfig.name }}</h5>
+                <p class="text-muted mb-3">
+                  {{ isCustomConfig(selectedConfig) ? 'Configuración personalizada' : 'Configuración predefinida' }}
+                </p>
+                
+                <!-- Botones de acción solo para configuraciones personalizadas -->
+                <div class="d-flex gap-2" *ngIf="isCustomConfig(selectedConfig)">
+                  <button class="btn btn-primary" 
+                          (click)="applySelectedConfig()"
+                          [disabled]="isCurrentConfig(selectedConfig)">
+                    <i class="bi bi-check-circle me-2"></i>
+                    {{ isCurrentConfig(selectedConfig) ? 'Configuración Actual' : 'Aplicar Configuración' }}
+                  </button>
+                  
+                  <button class="btn btn-outline-secondary" 
+                          (click)="editCustomConfig(selectedConfig)" 
+                          title="Editar esta configuración">
+                    <i class="bi bi-pencil me-2"></i>
+                    Editar Configuración
+                  </button>
+                  
+                  <button class="btn btn-outline-danger" 
+                          (click)="removeCustomConfig(selectedConfig)" 
+                          title="Eliminar esta configuración">
+                    <i class="bi bi-trash me-2"></i>
+                    Eliminar Configuración
+                  </button>
+                </div>
+                
+                <!-- Mensaje para configuraciones predefinidas -->
+                <div *ngIf="!isCustomConfig(selectedConfig)" class="alert alert-info">
+                  <i class="bi bi-info-circle me-2"></i>
+                  Esta configuración se aplica automáticamente al seleccionarla
+                </div>
+              </div>
+              
+              <!-- Configuraciones globales -->
+              <div class="config-grid">
+                <div class="config-item">
+                  <span class="config-name">Sombras</span>
+                  <span class="badge" [class]="selectedConfig.global.shadows ? 'bg-success' : 'bg-secondary'">
+                    {{ selectedConfig.global.shadows ? 'Activadas' : 'Desactivadas' }}
+                  </span>
+                </div>
+                <div class="config-item">
+                  <span class="config-name">Animaciones</span>
+                  <span class="badge" [class]="selectedConfig.global.animations ? 'bg-success' : 'bg-secondary'">
+                    {{ selectedConfig.global.animations ? 'Activadas' : 'Desactivadas' }}
+                  </span>
+                </div>
+                <div class="config-item">
+                  <span class="config-name">Modo Compacto</span>
+                  <span class="badge" [class]="selectedConfig.global.compactMode ? 'bg-success' : 'bg-secondary'">
+                    {{ selectedConfig.global.compactMode ? 'Activado' : 'Desactivado' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Configuraciones por componente -->
+              <h6 class="mt-4 mb-3">Configuraciones por Componente</h6>
+              <div class="component-configs">
+                <div class="component-section" *ngFor="let component of selectedConfig.components | keyvalue">
+                  <h6 class="component-title">{{ getComponentDisplayNames()[component.key] }}</h6>
+                  <div class="component-details">
+                    <small class="text-muted">
+                      {{ component.value.fontFamily }} • {{ component.value.fontSize }} • {{ component.value.fontWeight }}
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Mensaje cuando no hay configuración seleccionada -->
+            <div class="p-4 text-center text-muted" *ngIf="!selectedConfig">
+              <i class="bi bi-sliders display-4 mb-3"></i>
+              <p>Selecciona una configuración de la lista para ver sus detalles</p>
+            </div>
           </div>
         </div>
       </div>
@@ -181,6 +305,150 @@
               <i class="bi bi-save"></i>
             </button>
             <button class="btn btn-secondary" (click)="hideCustomPaletteForm()" title="Cancelar">
+              <i class="bi bi-x-circle"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulario de configuración personalizada (modal overlay) -->
+  <div class="custom-palette-overlay" *ngIf="showCustomConfigForm">
+    <div class="custom-palette-form">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h6 class="mb-0">{{ editingConfig ? 'Editar' : 'Nueva' }} Configuración Frontend</h6>
+        </div>
+        <div class="card-body">
+          
+          <!-- Nombre de la configuración -->
+          <div class="mb-3">
+            <label class="form-label">Nombre de la Configuración</label>
+            <input type="text" 
+                   class="form-control" 
+                   [(ngModel)]="customConfig.name"
+                   placeholder="Ej: Mi Configuración Personalizada">
+          </div>
+
+          <!-- Configuraciones globales -->
+          <h6>Configuraciones Globales</h6>
+          <div class="row mb-4">
+            <div class="col-md-12 mb-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" 
+                       [ngModel]="customConfig.global.shadows"
+                       (ngModelChange)="updateCustomConfigGlobal('shadows', $event)">
+                <label class="form-check-label">Activar Sombras</label>
+              </div>
+            </div>
+            
+            <div class="col-md-12 mb-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" 
+                       [ngModel]="customConfig.global.animations"
+                       (ngModelChange)="updateCustomConfigGlobal('animations', $event)">
+                <label class="form-check-label">Activar Animaciones</label>
+              </div>
+            </div>
+            
+            <div class="col-md-12 mb-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" 
+                       [ngModel]="customConfig.global.compactMode"
+                       (ngModelChange)="updateCustomConfigGlobal('compactMode', $event)">
+                <label class="form-check-label">Modo Compacto</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Configuraciones por componente -->
+          <h6>Configuraciones por Componente</h6>
+          <div class="component-config-sections">
+            <div class="component-config-section" *ngFor="let component of customConfig.components | keyvalue">
+              <h6 class="component-config-title">{{ getComponentDisplayNames()[component.key] }}</h6>
+              
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Familia de Fuente</label>
+                  <select class="form-select form-select-sm" 
+                          [ngModel]="component.value.fontFamily"
+                          (ngModelChange)="updateCustomConfigComponent(component.key, 'fontFamily', $event)">
+                    <option *ngFor="let font of getFontFamilies()" [value]="font.value">{{ font.name }}</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Tamaño de Fuente</label>
+                  <select class="form-select form-select-sm" 
+                          [ngModel]="component.value.fontSize"
+                          (ngModelChange)="updateCustomConfigComponent(component.key, 'fontSize', $event)">
+                    <option value="0.7rem">0.7rem - Muy Pequeño</option>
+                    <option value="0.75rem">0.75rem - Pequeño</option>
+                    <option value="0.8rem">0.8rem - Pequeño+</option>
+                    <option value="0.875rem">0.875rem - Normal</option>
+                    <option value="0.9rem">0.9rem - Normal+</option>
+                    <option value="1rem">1rem - Mediano</option>
+                    <option value="1.125rem">1.125rem - Mediano+</option>
+                    <option value="1.25rem">1.25rem - Grande</option>
+                    <option value="1.375rem">1.375rem - Grande+</option>
+                    <option value="1.5rem">1.5rem - Muy Grande</option>
+                    <option value="1.75rem">1.75rem - Extra Grande</option>
+                    <option value="2rem">2rem - XXL</option>
+                    <option value="2.25rem">2.25rem - XXXL</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Peso de Fuente</label>
+                  <select class="form-select form-select-sm" 
+                          [ngModel]="component.value.fontWeight"
+                          (ngModelChange)="updateCustomConfigComponent(component.key, 'fontWeight', $event)">
+                    <option value="300">300 - Ligero</option>
+                    <option value="400">400 - Normal</option>
+                    <option value="500">500 - Medio</option>
+                    <option value="600">600 - Semi-Negrita</option>
+                    <option value="700">700 - Negrita</option>
+                    <option value="800">800 - Extra Negrita</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Radio de Bordes</label>
+                  <select class="form-select form-select-sm" 
+                          [ngModel]="component.value.borderRadius"
+                          (ngModelChange)="updateCustomConfigComponent(component.key, 'borderRadius', $event)">
+                    <option value="0">0 - Sin bordes</option>
+                    <option value="2px">2px - Mínimo</option>
+                    <option value="4px">4px - Pequeño</option>
+                    <option value="6px">6px - Normal</option>
+                    <option value="8px">8px - Mediano</option>
+                    <option value="10px">10px - Grande</option>
+                    <option value="12px">12px - Muy Grande</option>
+                    <option value="16px">16px - Extra Grande</option>
+                  </select>
+                </div>
+              </div>
+              
+              <!-- Vista previa del componente -->
+              <div class="component-preview">
+                <div class="preview-sample" 
+                     [style.font-family]="component.value.fontFamily"
+                     [style.font-size]="component.value.fontSize"
+                     [style.font-weight]="component.value.fontWeight"
+                     [style.border-radius]="component.value.borderRadius">
+                  {{ getPreviewText(component.key) }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Botones de acción -->
+          <div class="d-flex gap-2 mt-4">
+            <button class="btn btn-primary" (click)="saveCustomConfig()" title="Guardar configuración">
+              <i class="bi bi-save"></i>
+            </button>
+            <button class="btn btn-secondary" (click)="hideCustomConfigForm()" title="Cancelar">
               <i class="bi bi-x-circle"></i>
             </button>
           </div>
