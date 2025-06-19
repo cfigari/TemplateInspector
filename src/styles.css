@@ -30,6 +30,7 @@ body {
   display: flex;
   flex: 1;
   overflow: hidden;
+  margin-top: var(--header-height);
 }
 
 .content-area {

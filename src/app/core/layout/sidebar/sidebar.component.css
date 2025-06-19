@@ -9,6 +9,7 @@
   z-index: 1000;
   display: flex;
   flex-direction: column;
+  padding-top: var(--header-height);
 }
 
 .sidebar-menu {

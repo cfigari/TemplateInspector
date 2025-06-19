@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { TemplateParserService } from './template-parser.service';
 
 export interface CloudFormationResource {
   type: string;
@@ -64,8 +63,6 @@ export interface ValidationResult {
 })
 export class TemplateValidatorService {
 
-  constructor(private parser: TemplateParserService) { }
-
   validateTemplate(templateContent: string): ValidationResult {
     console.log('Iniciando validación del template');
     
@@ -81,14 +78,13 @@ export class TemplateValidatorService {
     };
 
     try {
-      // Parsear el template usando el servicio de parseo
-      const parsedTemplate = this.parser.parseTemplate(templateContent);
+      // Parsear el template directamente
+      const parsedTemplate = this.parseTemplate(templateContent);
       console.log('Template parseado:', parsedTemplate);
       
       // Validar formato AWSTemplateFormatVersion
       if (parsedTemplate['AWSTemplateFormatVersion']) {
-        // Eliminar comillas si existen
-        const version = parsedTemplate['AWSTemplateFormatVersion'].replace(/['\"]/g, '');
+        const version = parsedTemplate['AWSTemplateFormatVersion'].replace(/['"]/g, '');
         if (version !== '2010-09-09') {
           console.log('Versión no soportada:', version);
           result.errors.push(`Versión de template no soportada: ${version}`);
@@ -102,7 +98,6 @@ export class TemplateValidatorService {
           const resourceContent = parsedTemplate['Resources'][logicalId].content || '';
           let resourceType = 'Unknown';
           
-          // Extraer el tipo del recurso
           const typeMatch = resourceContent.match(/Type:\s*([^\s\n]+)/);
           if (typeMatch && typeMatch[1]) {
             resourceType = typeMatch[1];
@@ -122,29 +117,25 @@ export class TemplateValidatorService {
         console.log('Procesando parámetros...', Object.keys(parsedTemplate['Parameters']).length);
         for (const paramName in parsedTemplate['Parameters']) {
           const paramContent = parsedTemplate['Parameters'][paramName].content || '';
-          let paramType = 'String'; // Tipo por defecto
+          let paramType = 'String';
           let paramDesc = '';
           let paramDefault = undefined;
           
-          // Extraer el tipo del parámetro
           const typeMatch = paramContent.match(/Type:\s*([^\s\n]+)/);
           if (typeMatch && typeMatch[1]) {
             paramType = typeMatch[1].trim();
           }
           
-          // Extraer la descripción
           const descMatch = paramContent.match(/Description:\s*(.+?)(\n|$)/);
           if (descMatch && descMatch[1]) {
             paramDesc = descMatch[1].trim();
           }
           
-          // Extraer el valor por defecto
           const defaultMatch = paramContent.match(/Default:\s*(.+?)(\n|$)/);
           if (defaultMatch && defaultMatch[1]) {
             paramDefault = defaultMatch[1].trim();
           }
           
-          // Extraer valores permitidos (AllowedValues)
           const paramAllowedValues: string[] = [];
           if (paramContent.includes('AllowedValues:')) {
             const allowedValuesRegex = /AllowedValues:[\s\S]*?(?:- (.+?)(?:\n|$))/g;
@@ -156,63 +147,12 @@ export class TemplateValidatorService {
             }
           }
           
-          // Extraer otros atributos
-          let minValue = undefined;
-          let maxValue = undefined;
-          let minLength = undefined;
-          let maxLength = undefined;
-          let allowedPattern = undefined;
-          let noEcho = undefined;
-          let constraintDescription = undefined;
-          
-          const minValueMatch = paramContent.match(/MinValue:\s*(.+?)(\n|$)/);
-          if (minValueMatch && minValueMatch[1]) {
-            minValue = Number(minValueMatch[1].trim());
-          }
-          
-          const maxValueMatch = paramContent.match(/MaxValue:\s*(.+?)(\n|$)/);
-          if (maxValueMatch && maxValueMatch[1]) {
-            maxValue = Number(maxValueMatch[1].trim());
-          }
-          
-          const minLengthMatch = paramContent.match(/MinLength:\s*(.+?)(\n|$)/);
-          if (minLengthMatch && minLengthMatch[1]) {
-            minLength = Number(minLengthMatch[1].trim());
-          }
-          
-          const maxLengthMatch = paramContent.match(/MaxLength:\s*(.+?)(\n|$)/);
-          if (maxLengthMatch && maxLengthMatch[1]) {
-            maxLength = Number(maxLengthMatch[1].trim());
-          }
-          
-          const allowedPatternMatch = paramContent.match(/AllowedPattern:\s*(.+?)(\n|$)/);
-          if (allowedPatternMatch && allowedPatternMatch[1]) {
-            allowedPattern = allowedPatternMatch[1].trim();
-          }
-          
-          const noEchoMatch = paramContent.match(/NoEcho:\s*(.+?)(\n|$)/);
-          if (noEchoMatch && noEchoMatch[1]) {
-            noEcho = noEchoMatch[1].trim().toLowerCase() === 'true';
-          }
-          
-          const constraintDescMatch = paramContent.match(/ConstraintDescription:\s*(.+?)(\n|$)/);
-          if (constraintDescMatch && constraintDescMatch[1]) {
-            constraintDescription = constraintDescMatch[1].trim();
-          }
-          
           result.parameters[paramName] = {
             type: paramType,
             description: paramDesc,
             default: paramDefault,
             allowedValues: paramAllowedValues,
-            minValue: minValue,
-            maxValue: maxValue,
-            minLength: minLength,
-            maxLength: maxLength,
-            allowedPattern: allowedPattern,
-            noEcho: noEcho,
-            constraintDescription: constraintDescription,
-            rawContent: paramContent // Guardar el contenido completo para extracción
+            rawContent: paramContent
           };
         }
         console.log(`Parámetros procesados: ${Object.keys(result.parameters).length}`);
@@ -227,19 +167,16 @@ export class TemplateValidatorService {
           let outputDesc = '';
           let outputExport = undefined;
           
-          // Extraer el valor
           const valueMatch = outputContent.match(/Value:\s*(.+?)(\n|$)/);
           if (valueMatch && valueMatch[1]) {
             outputValue = valueMatch[1].trim();
           }
           
-          // Extraer la descripción
           const descMatch = outputContent.match(/Description:\s*(.+?)(\n|$)/);
           if (descMatch && descMatch[1]) {
             outputDesc = descMatch[1].trim();
           }
           
-          // Extraer la exportación
           const exportMatch = outputContent.match(/Export:[\s\S]*?Name:\s*(.+?)(\n|$)/);
           if (exportMatch && exportMatch[1]) {
             outputExport = { name: exportMatch[1].trim() };
@@ -285,7 +222,6 @@ export class TemplateValidatorService {
         console.log(`Globals procesados: ${Object.keys(result.globals || {}).length}`);
       }
 
-      // Si llegamos hasta aquí sin errores críticos, el template es válido
       result.isValid = result.errors.length === 0;
       console.log('Validación completada. Template válido:', result.isValid);
       
@@ -295,5 +231,120 @@ export class TemplateValidatorService {
       result.errors.push(`Error al validar el template: ${error}`);
       return result;
     }
+  }
+
+  private parseTemplate(templateContent: string): { [key: string]: any } {
+    const result: { [key: string]: any } = {
+      Parameters: {},
+      Mappings: {},
+      Resources: {},
+      Outputs: {},
+      Conditions: {},
+      Globals: {}
+    };
+
+    try {
+      const topLevelRegex = /^([A-Za-z0-9]+):\s*$/gm;
+      let match;
+      let sections = [];
+      
+      while ((match = topLevelRegex.exec(templateContent)) !== null) {
+        sections.push({
+          name: match[1],
+          position: match.index
+        });
+      }
+      
+      sections.sort((a, b) => a.position - b.position);
+      
+      const extractedSections: any = {};
+      
+      for (let i = 0; i < sections.length; i++) {
+        const currentSection = sections[i];
+        const nextSection = sections[i + 1];
+        
+        const startPos = templateContent.indexOf(':', currentSection.position) + 1;
+        const endPos = nextSection ? nextSection.position : templateContent.length;
+        
+        let sectionContent = templateContent.substring(startPos, endPos).trim();
+        extractedSections[currentSection.name] = sectionContent;
+      }
+      
+      console.log('Secciones de nivel superior extraídas:', Object.keys(extractedSections));
+      
+      if (extractedSections['Parameters']) {
+        result['Parameters'] = this.parseSection(extractedSections['Parameters']);
+      }
+      
+      if (extractedSections['Resources']) {
+        result['Resources'] = this.parseSection(extractedSections['Resources']);
+      }
+      
+      if (extractedSections['Mappings']) {
+        result['Mappings'] = this.parseSection(extractedSections['Mappings']);
+      }
+      
+      if (extractedSections['Outputs']) {
+        result['Outputs'] = this.parseSection(extractedSections['Outputs']);
+      }
+      
+      if (extractedSections['Conditions']) {
+        result['Conditions'] = this.parseSection(extractedSections['Conditions']);
+      }
+      
+      if (extractedSections['Globals']) {
+        result['Globals'] = this.parseSection(extractedSections['Globals']);
+      }
+      
+      if (extractedSections['AWSTemplateFormatVersion']) {
+        result['AWSTemplateFormatVersion'] = extractedSections['AWSTemplateFormatVersion'].trim();
+      }
+      
+      if (extractedSections['Transform']) {
+        result['Transform'] = extractedSections['Transform'].trim();
+      }
+      
+      if (extractedSections['Description']) {
+        result['Description'] = extractedSections['Description'].trim();
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error al parsear el template:', error);
+      return result;
+    }
+  }
+
+  private parseSection(content: string): { [key: string]: any } {
+    const items: { [key: string]: any } = {};
+    
+    try {
+      const lines = content.split('\n');
+      let currentItem = '';
+      let itemContent = '';
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine && !trimmedLine.startsWith(' ') && trimmedLine.includes(':')) {
+          if (currentItem) {
+            items[currentItem] = { content: itemContent };
+          }
+          
+          const parts = trimmedLine.split(':');
+          currentItem = parts[0].trim();
+          itemContent = parts.slice(1).join(':').trim() + '\n';
+        } else if (currentItem) {
+          itemContent += line + '\n';
+        }
+      }
+      
+      if (currentItem) {
+        items[currentItem] = { content: itemContent };
+      }
+    } catch (e) {
+      console.error('Error al procesar sección:', e);
+    }
+    
+    return items;
   }
 }
