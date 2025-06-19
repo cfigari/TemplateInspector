@@ -39,8 +39,16 @@ export class TemplatesComponent implements OnInit {
   }
 
   loadTemplates(): void {
-    this.templateStorage.getAllTemplates().subscribe(templates => {
-      this.templates = templates;
+    console.log('Cargando templates...');
+    this.templateStorage.getAllTemplates().subscribe({
+      next: (templates) => {
+        console.log('Templates cargados:', templates);
+        this.templates = templates;
+      },
+      error: (error) => {
+        console.error('Error al cargar templates:', error);
+        this.templates = [];
+      }
     });
   }
 
@@ -131,9 +139,12 @@ export class TemplatesComponent implements OnInit {
           content: content
         };
         
+        console.log('Guardando template:', template);
+        
         // Guardar en la base de datos
         this.templateStorage.saveTemplate(template).subscribe({
           next: (savedTemplate) => {
+            console.log('Template guardado:', savedTemplate);
             this.isUploading = false;
             this.uploadSuccess = true;
             
@@ -147,6 +158,7 @@ export class TemplatesComponent implements OnInit {
             }, 3000);
           },
           error: (err) => {
+            console.error('Error al guardar template:', err);
             this.isUploading = false;
             this.uploadError = true;
             this.errorMessage = 'Error al guardar el archivo: ' + err;

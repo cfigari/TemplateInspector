@@ -1,24 +1,15 @@
 import { Injectable } from '@angular/core';
 import { Observable, from, of } from 'rxjs';
 import { map, catchError, switchMap } from 'rxjs/operators';
-
-export interface Template {
-  id?: number;
-  name: string;
-  type: string;
-  size: string;
-  date: string;
-  status: string;
-  content: string | ArrayBuffer;
-}
+import { ColorPalette } from './theme.service';
 
 @Injectable({
   providedIn: 'root'
 })
-export class TemplateStorageService {
+export class PaletteStorageService {
   private dbName = 'templateInspectorDB';
-  private storeName = 'templates';
-  private dbVersion = 2; // Actualizar a versión 2
+  private storeName = 'palettes';
+  private dbVersion = 2; // Incrementamos la versión
 
   constructor() {
     this.initDB();
@@ -30,17 +21,10 @@ export class TemplateStorageService {
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
       
-      // Crear store de templates si no existe
+      // Crear store de paletas si no existe
       if (!db.objectStoreNames.contains(this.storeName)) {
-        const store = db.createObjectStore(this.storeName, { keyPath: 'id', autoIncrement: true });
+        const store = db.createObjectStore(this.storeName, { keyPath: 'id' });
         store.createIndex('name', 'name', { unique: false });
-        store.createIndex('date', 'date', { unique: false });
-      }
-      
-      // Crear store de palettes si no existe (para compatibilidad)
-      if (!db.objectStoreNames.contains('palettes')) {
-        const paletteStore = db.createObjectStore('palettes', { keyPath: 'id' });
-        paletteStore.createIndex('name', 'name', { unique: false });
       }
     };
 
@@ -63,32 +47,21 @@ export class TemplateStorageService {
     });
   }
 
-  saveTemplate(template: Template): Observable<Template> {
+  savePalette(palette: ColorPalette): Observable<ColorPalette> {
     return from(this.getDB()).pipe(
       switchMap(db => {
-        return new Promise<Template>((resolve, reject) => {
+        return new Promise<ColorPalette>((resolve, reject) => {
           try {
             const transaction = db.transaction([this.storeName], 'readwrite');
             const store = transaction.objectStore(this.storeName);
+            const request = store.put(palette);
             
-            let request;
-            if (template.id !== undefined) {
-              // Actualizar template existente
-              request = store.put(template);
-            } else {
-              // Añadir nuevo template
-              request = store.add(template);
-            }
-            
-            request.onsuccess = (event) => {
-              if (template.id === undefined) {
-                template.id = (event.target as IDBRequest).result as number;
-              }
-              resolve(template);
+            request.onsuccess = () => {
+              resolve(palette);
             };
             
             request.onerror = (event) => {
-              reject('Error al guardar el template: ' + (event.target as IDBRequest).error);
+              reject('Error al guardar la paleta: ' + (event.target as IDBRequest).error);
             };
             
             transaction.oncomplete = () => {
@@ -100,28 +73,27 @@ export class TemplateStorageService {
         });
       }),
       catchError(error => {
-        console.error('Error en saveTemplate:', error);
-        return of({ ...template, status: 'Error' });
+        console.error('Error en savePalette:', error);
+        return of(palette);
       })
     );
   }
 
-  getAllTemplates(): Observable<Template[]> {
+  getAllPalettes(): Observable<ColorPalette[]> {
     return from(this.getDB()).pipe(
       switchMap(db => {
-        return new Promise<Template[]>((resolve, reject) => {
+        return new Promise<ColorPalette[]>((resolve, reject) => {
           try {
             const transaction = db.transaction([this.storeName], 'readonly');
             const store = transaction.objectStore(this.storeName);
             const request = store.getAll();
             
             request.onsuccess = () => {
-              console.log('Templates obtenidos:', request.result);
               resolve(request.result);
             };
             
             request.onerror = () => {
-              reject('Error al obtener los templates');
+              reject('Error al obtener las paletas');
             };
             
             transaction.oncomplete = () => {
@@ -133,59 +105,27 @@ export class TemplateStorageService {
         });
       }),
       catchError(error => {
-        console.error('Error en getAllTemplates:', error);
+        console.error('Error en getAllPalettes:', error);
         return of([]);
       })
     );
   }
 
-  getTemplateById(id: number): Observable<Template | undefined> {
-    return from(this.getDB()).pipe(
-      switchMap(db => {
-        return new Promise<Template | undefined>((resolve, reject) => {
-          try {
-            const transaction = db.transaction([this.storeName], 'readonly');
-            const store = transaction.objectStore(this.storeName);
-            const request = store.get(id);
-            
-            request.onsuccess = () => {
-              resolve(request.result);
-            };
-            
-            request.onerror = () => {
-              reject('Error al obtener el template');
-            };
-            
-            transaction.oncomplete = () => {
-              db.close();
-            };
-          } catch (error) {
-            reject('Error en la transacción: ' + error);
-          }
-        });
-      }),
-      catchError(error => {
-        console.error('Error en getTemplateById:', error);
-        return of(undefined);
-      })
-    );
-  }
-
-  deleteTemplate(id: number): Observable<boolean> {
+  deletePalette(paletteId: string): Observable<boolean> {
     return from(this.getDB()).pipe(
       switchMap(db => {
         return new Promise<boolean>((resolve, reject) => {
           try {
             const transaction = db.transaction([this.storeName], 'readwrite');
             const store = transaction.objectStore(this.storeName);
-            const request = store.delete(id);
+            const request = store.delete(paletteId);
             
             request.onsuccess = () => {
               resolve(true);
             };
             
             request.onerror = () => {
-              reject('Error al eliminar el template');
+              reject('Error al eliminar la paleta');
             };
             
             transaction.oncomplete = () => {
@@ -197,7 +137,7 @@ export class TemplateStorageService {
         });
       }),
       catchError(error => {
-        console.error('Error en deleteTemplate:', error);
+        console.error('Error en deletePalette:', error);
         return of(false);
       })
     );

@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { PaletteStorageService } from './palette-storage.service';
 
 export interface ColorPalette {
   id: string;
@@ -24,11 +25,14 @@ export interface ColorPalette {
 export class ThemeService {
   private readonly CONFIG_KEY = 'theme-config';
   private currentThemeSubject = new BehaviorSubject<ColorPalette>(this.getDefaultPalettes()[0]);
+  private customPalettesCache: ColorPalette[] = [];
   
   public currentTheme$ = this.currentThemeSubject.asObservable();
 
-  constructor() {
-    this.loadSavedTheme();
+  constructor(private paletteStorage: PaletteStorageService) {
+    this.loadCustomPalettes().then(() => {
+      this.loadSavedTheme();
+    });
   }
 
   getDefaultPalettes(): ColorPalette[] {
@@ -123,7 +127,7 @@ export class ThemeService {
   setTheme(palette: ColorPalette): void {
     this.currentThemeSubject.next(palette);
     this.applyTheme(palette);
-    this.saveTheme(palette);
+    this.saveCurrentTheme(palette.id);
   }
 
   private applyTheme(palette: ColorPalette): void {
@@ -147,21 +151,16 @@ export class ThemeService {
     root.style.setProperty('--sidebar-bg', palette.colors.secondary);
   }
 
-  private saveTheme(palette: ColorPalette): void {
-    const config = {
-      selectedTheme: palette.id,
-      customPalettes: this.getCustomPalettes()
-    };
-    localStorage.setItem(this.CONFIG_KEY, JSON.stringify(config));
+  private saveCurrentTheme(paletteId: string): void {
+    localStorage.setItem(this.CONFIG_KEY, paletteId);
   }
 
   private loadSavedTheme(): void {
     try {
-      const saved = localStorage.getItem(this.CONFIG_KEY);
-      if (saved) {
-        const config = JSON.parse(saved);
-        const allPalettes = [...this.getDefaultPalettes(), ...config.customPalettes || []];
-        const savedPalette = allPalettes.find(p => p.id === config.selectedTheme);
+      const savedThemeId = localStorage.getItem(this.CONFIG_KEY);
+      if (savedThemeId) {
+        const allPalettes = this.getAllPalettes();
+        const savedPalette = allPalettes.find(p => p.id === savedThemeId);
         
         if (savedPalette) {
           this.setTheme(savedPalette);
@@ -176,44 +175,39 @@ export class ThemeService {
     this.applyTheme(this.getDefaultPalettes()[0]);
   }
 
-  addCustomPalette(palette: ColorPalette): void {
-    const customPalettes = this.getCustomPalettes();
-    customPalettes.push(palette);
-    
-    const config = {
-      selectedTheme: this.getCurrentTheme().id,
-      customPalettes: customPalettes
-    };
-    
-    localStorage.setItem(this.CONFIG_KEY, JSON.stringify(config));
+  private async loadCustomPalettes(): Promise<void> {
+    try {
+      this.customPalettesCache = await this.paletteStorage.getAllPalettes().toPromise() || [];
+    } catch (error) {
+      console.error('Error loading custom palettes:', error);
+      this.customPalettesCache = [];
+    }
   }
 
-  removeCustomPalette(paletteId: string): void {
-    const customPalettes = this.getCustomPalettes().filter(p => p.id !== paletteId);
-    
-    const config = {
-      selectedTheme: this.getCurrentTheme().id,
-      customPalettes: customPalettes
-    };
-    
-    localStorage.setItem(this.CONFIG_KEY, JSON.stringify(config));
+  async addCustomPalette(palette: ColorPalette): Promise<void> {
+    try {
+      await this.paletteStorage.savePalette(palette).toPromise();
+      this.customPalettesCache.push(palette);
+    } catch (error) {
+      console.error('Error adding custom palette:', error);
+    }
+  }
+
+  async removeCustomPalette(paletteId: string): Promise<void> {
+    try {
+      await this.paletteStorage.deletePalette(paletteId).toPromise();
+      this.customPalettesCache = this.customPalettesCache.filter(p => p.id !== paletteId);
+    } catch (error) {
+      console.error('Error removing custom palette:', error);
+    }
   }
 
   getCustomPalettes(): ColorPalette[] {
-    try {
-      const saved = localStorage.getItem(this.CONFIG_KEY);
-      if (saved) {
-        const config = JSON.parse(saved);
-        return config.customPalettes || [];
-      }
-    } catch (error) {
-      console.error('Error loading custom palettes:', error);
-    }
-    return [];
+    return this.customPalettesCache;
   }
 
   getAllPalettes(): ColorPalette[] {
-    return [...this.getDefaultPalettes(), ...this.getCustomPalettes()];
+    return [...this.getDefaultPalettes(), ...this.customPalettesCache];
   }
 
   generatePaletteId(): string {

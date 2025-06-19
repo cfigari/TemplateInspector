@@ -74,21 +74,21 @@ export class SettingsComponent implements OnInit {
     this.showCustomPaletteForm = false;
   }
 
-  saveCustomPalette(): void {
+  async saveCustomPalette(): Promise<void> {
     if (!this.customPalette.name.trim()) {
       alert('Por favor ingresa un nombre para la paleta');
       return;
     }
 
     this.customPalette.id = this.themeService.generatePaletteId();
-    this.themeService.addCustomPalette({ ...this.customPalette });
+    await this.themeService.addCustomPalette({ ...this.customPalette });
     this.loadPalettes();
     this.hideCustomPaletteForm();
   }
 
-  removeCustomPalette(palette: ColorPalette): void {
+  async removeCustomPalette(palette: ColorPalette): Promise<void> {
     if (confirm(`¿Estás seguro de eliminar la paleta "${palette.name}"?`)) {
-      this.themeService.removeCustomPalette(palette.id);
+      await this.themeService.removeCustomPalette(palette.id);
       this.loadPalettes();
       
       // Si era la paleta seleccionada, cambiar a la primera disponible

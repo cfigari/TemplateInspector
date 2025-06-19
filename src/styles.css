@@ -144,14 +144,37 @@ body {
   border-color: var(--primary-color) !important;
 }
 
-/* Corregir botones amarillos de Bootstrap */
-.btn-outline-secondary:hover,
-.btn-outline-secondary:focus,
-.btn-outline-secondary.focus,
-.btn-outline-secondary:not(:disabled):not(.disabled):active,
-.btn-outline-secondary:not(:disabled):not(.disabled).active {
+/* Botones outline personalizados */
+.btn-outline-primary {
+  color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  color: white !important;
+}
+
+.btn-outline-secondary {
+  color: var(--secondary-color) !important;
+  border-color: var(--secondary-color) !important;
+}
+
+.btn-outline-secondary:hover {
   background-color: var(--secondary-color) !important;
   border-color: var(--secondary-color) !important;
+  color: white !important;
+}
+
+.btn-outline-danger {
+  color: var(--danger-color) !important;
+  border-color: var(--danger-color) !important;
+}
+
+.btn-outline-danger:hover {
+  background-color: var(--danger-color) !important;
+  border-color: var(--danger-color) !important;
   color: white !important;
 }
 

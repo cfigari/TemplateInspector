@@ -177,13 +177,11 @@
 
           <!-- Botones de acción -->
           <div class="d-flex gap-2 mt-4">
-            <button class="btn btn-primary" (click)="saveCustomPalette()">
-              <i class="bi bi-save me-2"></i>
-              Guardar
+            <button class="btn btn-primary" (click)="saveCustomPalette()" title="Guardar paleta">
+              <i class="bi bi-save"></i>
             </button>
-            <button class="btn btn-secondary" (click)="hideCustomPaletteForm()">
-              <i class="bi bi-x-circle me-2"></i>
-              Cancelar
+            <button class="btn btn-secondary" (click)="hideCustomPaletteForm()" title="Cancelar">
+              <i class="bi bi-x-circle"></i>
             </button>
           </div>
         </div>
