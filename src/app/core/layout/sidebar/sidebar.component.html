@@ -1,9 +1,8 @@
 <div class="sidebar">
   <ul class="sidebar-menu">
-    <li *ngFor="let item of menuItems" class="sidebar-menu-item" [routerLink]="item.route" routerLinkActive="active">
+    <li *ngFor="let item of menuItems" class="sidebar-menu-item" [routerLink]="item.route" routerLinkActive="active" [title]="item.title">
       <div class="sidebar-menu-item-content">
         <i [class]="item.icon"></i>
-        <span class="sidebar-title">{{ item.title }}</span>
       </div>
     </li>
   </ul>

@@ -1,0 +1,10 @@
+.extract-link {
+  text-decoration: none;
+  cursor: pointer;
+  margin-left: 5px;
+  font-size: 0.8rem;
+}
+
+.extract-link:hover {
+  text-decoration: underline;
+}

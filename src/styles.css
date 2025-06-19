@@ -3,7 +3,7 @@
 /* Estilos globales para la aplicación */
 :root {
   --header-height: 60px;
-  --sidebar-width: 70px;
+  --sidebar-width: 60px;
   --primary-color: #FF9900; /* Color naranja de AWS */
   --secondary-color: #232F3E; /* Color azul oscuro de AWS */
   --text-color: #333;
@@ -37,6 +37,7 @@ body {
   padding: 20px;
   overflow-y: auto;
   background-color: var(--content-bg);
+  margin-left: var(--sidebar-width);
 }
 
 /* Estilos para la barra superior */
