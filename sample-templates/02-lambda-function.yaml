@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Lambda function with IAM role and CloudWatch logs'
+
+Parameters:
+  FunctionName:
+    Type: String
+    Description: Name for the Lambda function
+    Default: MyLambdaFunction
+  
+  Runtime:
+    Type: String
+    Description: Lambda runtime
+    Default: python3.9
+    AllowedValues:
+      - python3.9
+      - python3.10
+      - nodejs18.x
+      - nodejs20.x
+
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  MyLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref FunctionName
+      Runtime: !Ref Runtime
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              return {
+                  'statusCode': 200,
+                  'body': 'Hello from Lambda!'
+              }
+      Timeout: 30
+      MemorySize: 128
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${FunctionName}"
+      RetentionInDays: 14
+
+Outputs:
+  FunctionArn:
+    Description: ARN of the Lambda function
+    Value: !GetAtt MyLambdaFunction.Arn
+  
+  RoleArn:
+    Description: ARN of the execution role
+    Value: !GetAtt LambdaExecutionRole.Arn

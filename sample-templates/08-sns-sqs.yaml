@@ -1,0 +1,274 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'SNS topic with SQS queues, dead letter queue and CloudWatch alarms'
+
+Parameters:
+  TopicName:
+    Type: String
+    Description: Name for the SNS topic
+    Default: MyNotificationTopic
+  
+  QueueName:
+    Type: String
+    Description: Name for the SQS queue
+    Default: MyProcessingQueue
+  
+  EmailEndpoint:
+    Type: String
+    Description: Email address for notifications
+    Default: admin@example.com
+    AllowedPattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+
+Resources:
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Ref TopicName
+      DisplayName: !Sub "${TopicName} Notifications"
+      KmsMasterKeyId: !Ref SNSKMSKey
+
+  SNSKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: KMS key for SNS topic encryption
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow SNS Service
+            Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action:
+              - kms:Decrypt
+              - kms:GenerateDataKey
+            Resource: '*'
+
+  EmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref SNSTopic
+      Protocol: email
+      Endpoint: !Ref EmailEndpoint
+
+  MainQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Ref QueueName
+      VisibilityTimeoutSeconds: 300
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 20
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
+        maxReceiveCount: 3
+      KmsMasterKeyId: !Ref SQSKMSKey
+      Tags:
+        - Key: Name
+          Value: !Ref QueueName
+        - Key: Type
+          Value: Main
+
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${QueueName}-dlq"
+      MessageRetentionPeriod: 1209600
+      KmsMasterKeyId: !Ref SQSKMSKey
+      Tags:
+        - Key: Name
+          Value: !Sub "${QueueName}-dlq"
+        - Key: Type
+          Value: DeadLetter
+
+  SQSKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: KMS key for SQS queue encryption
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow SQS Service
+            Effect: Allow
+            Principal:
+              Service: sqs.amazonaws.com
+            Action:
+              - kms:Decrypt
+              - kms:GenerateDataKey
+            Resource: '*'
+
+  SQSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref SNSTopic
+      Protocol: sqs
+      Endpoint: !GetAtt MainQueue.Arn
+      RawMessageDelivery: true
+
+  SQSQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref MainQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowSNSToSendMessage
+            Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt MainQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref SNSTopic
+
+  ProcessorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${QueueName}-processor"
+      Runtime: python3.9
+      Handler: index.handler
+      Role: !GetAtt ProcessorRole.Arn
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          
+          sns = boto3.client('sns')
+          
+          def handler(event, context):
+              print(f"Processing {len(event['Records'])} messages")
+              
+              for record in event['Records']:
+                  try:
+                      # Process the message
+                      body = json.loads(record['body'])
+                      print(f"Processing message: {body}")
+                      
+                      # Simulate processing
+                      message_id = record['messageId']
+                      print(f"Processed message {message_id}")
+                      
+                  except Exception as e:
+                      print(f"Error processing message: {str(e)}")
+                      # Send notification about processing error
+                      sns.publish(
+                          TopicArn=os.environ['SNS_TOPIC_ARN'],
+                          Subject='Message Processing Error',
+                          Message=f'Error processing message: {str(e)}'
+                      )
+                      raise e
+              
+              return {'statusCode': 200}
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref SNSTopic
+      Timeout: 300
+
+  ProcessorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SQSProcessorPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource: !GetAtt MainQueue.Arn
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref SNSTopic
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource:
+                  - !GetAtt SQSKMSKey.Arn
+                  - !GetAtt SNSKMSKey.Arn
+
+  LambdaEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt MainQueue.Arn
+      FunctionName: !Ref ProcessorFunction
+      BatchSize: 10
+      MaximumBatchingWindowInSeconds: 5
+
+  QueueDepthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${QueueName}-HighDepth"
+      AlarmDescription: Alarm when queue depth exceeds threshold
+      MetricName: ApproximateNumberOfVisibleMessages
+      Namespace: AWS/SQS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 100
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt MainQueue.QueueName
+      AlarmActions:
+        - !Ref SNSTopic
+
+  DeadLetterQueueAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${QueueName}-DeadLetterMessages"
+      AlarmDescription: Alarm when messages appear in dead letter queue
+      MetricName: ApproximateNumberOfVisibleMessages
+      Namespace: AWS/SQS
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt DeadLetterQueue.QueueName
+      AlarmActions:
+        - !Ref SNSTopic
+      TreatMissingData: notBreaching
+
+Outputs:
+  SNSTopicArn:
+    Description: ARN of the SNS topic
+    Value: !Ref SNSTopic
+    Export:
+      Name: !Sub "${AWS::StackName}-SNSTopicArn"
+  
+  MainQueueUrl:
+    Description: URL of the main SQS queue
+    Value: !Ref MainQueue
+  
+  DeadLetterQueueUrl:
+    Description: URL of the dead letter queue
+    Value: !Ref DeadLetterQueue
+  
+  ProcessorFunctionArn:
+    Description: ARN of the processor Lambda function
+    Value: !GetAtt ProcessorFunction.Arn

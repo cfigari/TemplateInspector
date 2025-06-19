@@ -1,0 +1,164 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'API Gateway with Lambda integration and custom domain'
+
+Parameters:
+  ApiName:
+    Type: String
+    Description: Name for the API Gateway
+    Default: MyAPI
+  
+  StageName:
+    Type: String
+    Description: Stage name for deployment
+    Default: prod
+    AllowedValues:
+      - dev
+      - test
+      - prod
+  
+  DomainName:
+    Type: String
+    Description: Custom domain name for API
+    Default: api.example.com
+
+Resources:
+  ApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Ref ApiName
+      Description: REST API for my application
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Policy:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: execute-api:Invoke
+            Resource: '*'
+
+  ApiGatewayResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: users
+
+  ApiGatewayMethodGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref ApiGatewayResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: Empty
+
+  ApiGatewayMethodPost:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref ApiGatewayResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      RequestValidatorId: !Ref RequestValidator
+      RequestModels:
+        application/json: !Ref UserModel
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations'
+
+  RequestValidator:
+    Type: AWS::ApiGateway::RequestValidator
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ValidateRequestBody: true
+      ValidateRequestParameters: false
+
+  UserModel:
+    Type: AWS::ApiGateway::Model
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ContentType: application/json
+      Schema:
+        type: object
+        properties:
+          name:
+            type: string
+          email:
+            type: string
+        required:
+          - name
+          - email
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ApiGatewayMethodGet
+      - ApiGatewayMethodPost
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      StageName: !Ref StageName
+      StageDescription:
+        ThrottlingBurstLimit: 100
+        ThrottlingRateLimit: 50
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ApiName}-handler"
+      Runtime: python3.9
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          import json
+          def handler(event, context):
+              return {
+                  'statusCode': 200,
+                  'headers': {
+                      'Content-Type': 'application/json',
+                      'Access-Control-Allow-Origin': '*'
+                  },
+                  'body': json.dumps({'message': 'Hello from API Gateway!'})
+              }
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/*/*'
+
+Outputs:
+  ApiGatewayUrl:
+    Description: URL of the API Gateway
+    Value: !Sub 'https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}'
+  
+  ApiId:
+    Description: API Gateway ID
+    Value: !Ref ApiGatewayRestApi
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiId"

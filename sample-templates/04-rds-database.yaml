@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'RDS MySQL database with security group and parameter group'
+
+Parameters:
+  DBInstanceClass:
+    Type: String
+    Description: RDS instance class
+    Default: db.t3.micro
+    AllowedValues:
+      - db.t3.micro
+      - db.t3.small
+      - db.t3.medium
+  
+  DBName:
+    Type: String
+    Description: Database name
+    Default: mydatabase
+    MinLength: 1
+    MaxLength: 64
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+  
+  DBUsername:
+    Type: String
+    Description: Database master username
+    Default: admin
+    MinLength: 1
+    MaxLength: 16
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+  
+  DBPassword:
+    Type: String
+    Description: Database master password
+    NoEcho: true
+    MinLength: 8
+    MaxLength: 41
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: Must contain only alphanumeric characters
+
+Conditions:
+  IsProduction: !Equals [!Ref 'AWS::AccountId', '123456789012']
+
+Resources:
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS database
+      SubnetIds:
+        - subnet-12345678
+        - subnet-87654321
+      Tags:
+        - Key: Name
+          Value: MyDBSubnetGroup
+
+  DBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: Parameter group for MySQL 8.0
+      Family: mysql8.0
+      Parameters:
+        innodb_buffer_pool_size: '{DBInstanceClassMemory*3/4}'
+        max_connections: 100
+
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS database
+      VpcId: vpc-12345678
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref AppSecurityGroup
+      Tags:
+        - Key: Name
+          Value: DBSecurityGroup
+
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for application servers
+      VpcId: vpc-12345678
+      Tags:
+        - Key: Name
+          Value: AppSecurityGroup
+
+  MyRDSInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: my-rds-instance
+      DBInstanceClass: !Ref DBInstanceClass
+      Engine: mysql
+      EngineVersion: '8.0.35'
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBName: !Ref DBName
+      AllocatedStorage: !If [IsProduction, 100, 20]
+      StorageType: gp2
+      StorageEncrypted: true
+      VPCSecurityGroups:
+        - !Ref DBSecurityGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      DBParameterGroupName: !Ref DBParameterGroup
+      BackupRetentionPeriod: !If [IsProduction, 7, 1]
+      MultiAZ: !If [IsProduction, true, false]
+      PubliclyAccessible: false
+      Tags:
+        - Key: Name
+          Value: MyRDSInstance
+        - Key: Environment
+          Value: !If [IsProduction, Production, Development]
+
+Outputs:
+  DBEndpoint:
+    Description: RDS instance endpoint
+    Value: !GetAtt MyRDSInstance.Endpoint.Address
+  
+  DBPort:
+    Description: RDS instance port
+    Value: !GetAtt MyRDSInstance.Endpoint.Port
+  
+  DBSecurityGroupId:
+    Description: Security group ID for database
+    Value: !Ref DBSecurityGroup

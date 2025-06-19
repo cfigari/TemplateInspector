@@ -10,10 +10,9 @@
         <pre class="bg-light p-3 rounded" style="max-height: 500px; overflow-y: auto;"><code>{{ modalService.content }}</code></pre>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" (click)="copyModalContent()">
-          <i class="bi bi-clipboard"></i> Copiar Código
+        <button type="button" class="btn btn-outline-secondary" (click)="copyModalContent()" title="Copiar código">
+          <i class="bi bi-clipboard"></i>
         </button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
       </div>
     </div>
   </div>
@@ -167,8 +166,8 @@
                   </span>
                 </td>
                 <td class="text-center">
-                  <button class="btn btn-sm btn-outline-primary" (click)="showExtract(resource.id, resource.extract)">
-                    Ver código
+                  <button class="btn btn-sm btn-outline-primary" (click)="showExtract(resource.id, resource.extract)" title="Ver código">
+                    <i class="bi bi-eye"></i>
                   </button>
                 </td>
               </tr>
@@ -213,8 +212,8 @@
                   <span *ngIf="getParameterAllowedValues(param).length === 0">-</span>
                 </td>
                 <td class="text-center">
-                  <button class="btn btn-sm btn-outline-primary" (click)="showExtract(param.id, param.extract)">
-                    Ver código
+                  <button class="btn btn-sm btn-outline-primary" (click)="showExtract(param.id, param.extract)" title="Ver código">
+                    <i class="bi bi-eye"></i>
                   </button>
                 </td>
               </tr>
@@ -253,8 +252,8 @@
                 </td>
                 <td>{{ getOutputExportName(output) || '-' }}</td>
                 <td class="text-center">
-                  <button class="btn btn-sm btn-outline-primary" (click)="showExtract(output.id, output.extract)">
-                    Ver código
+                  <button class="btn btn-sm btn-outline-primary" (click)="showExtract(output.id, output.extract)" title="Ver código">
+                    <i class="bi bi-eye"></i>
                   </button>
                 </td>
               </tr>
@@ -293,8 +292,8 @@
                   </div>
                 </td>
                 <td class="text-center">
-                  <button class="btn btn-sm btn-outline-primary" (click)="showExtract(mapping.id, mapping.extract)">
-                    Ver código
+                  <button class="btn btn-sm btn-outline-primary" (click)="showExtract(mapping.id, mapping.extract)" title="Ver código">
+                    <i class="bi bi-eye"></i>
                   </button>
                 </td>
               </tr>
@@ -329,8 +328,8 @@
                   </div>
                 </td>
                 <td class="text-center">
-                  <button class="btn btn-sm btn-outline-primary" (click)="showExtract(condition.id, condition.extract)">
-                    Ver código
+                  <button class="btn btn-sm btn-outline-primary" (click)="showExtract(condition.id, condition.extract)" title="Ver código">
+                    <i class="bi bi-eye"></i>
                   </button>
                 </td>
               </tr>
@@ -364,8 +363,8 @@
                   </div>
                 </td>
                 <td class="text-center">
-                  <button class="btn btn-sm btn-outline-primary" (click)="showGlobalExtract(global.key, global.value)">
-                    Ver código
+                  <button class="btn btn-sm btn-outline-primary" (click)="showGlobalExtract(global.key, global.value)" title="Ver código">
+                    <i class="bi bi-eye"></i>
                   </button>
                 </td>
               </tr>

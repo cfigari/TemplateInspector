@@ -253,9 +253,19 @@ export class TemplateValidatorComponent implements OnInit {
   }
   
   getSectionContent(section: string): string {
-    if (!this.templateContent || !this.validationResult) return '';
+    console.log('getSectionContent llamado con:', section);
+    console.log('templateContent disponible:', !!this.templateContent);
+    console.log('validationResult disponible:', !!this.validationResult);
     
-    return this.extractor.extractSection(this.templateContent, section);
+    if (!this.templateContent || !this.validationResult) {
+      console.log('Retornando vacío porque falta templateContent o validationResult');
+      return '';
+    }
+    
+    const extracted = this.extractor.extractSection(this.templateContent, section);
+    console.log(`Contenido extraído para ${section}:`, extracted.substring(0, 200));
+    
+    return extracted;
   }
   
   getResourceNames(): string[] {
@@ -802,6 +812,8 @@ export class TemplateValidatorComponent implements OnInit {
   }
   
   showExtract(title: string, content: string): void {
+    console.log('showExtract llamado con título:', title);
+    console.log('Contenido (primeros 100 chars):', content.substring(0, 100));
     this.modalService.show(title, content);
   }
   

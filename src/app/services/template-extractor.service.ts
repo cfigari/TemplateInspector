@@ -11,30 +11,33 @@ export class TemplateExtractorService {
    * Extrae una sección completa de nivel superior del template (Parameters, Resources, etc.)
    */
   extractSection(templateContent: string, sectionName: string): string {
+    console.log(`Extrayendo sección: ${sectionName}`);
+    
     const lines = templateContent.split('\n');
     let sectionContent = '';
     let inSection = false;
-    let indentation = -1;
+    let sectionIndentation = -1;
     
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const trimmedLine = line.trim();
+      const lineIndentation = line.search(/\S/);
       
       // Detectar inicio de la sección
       if (trimmedLine === `${sectionName}:` || trimmedLine.startsWith(`${sectionName}:`)) {
+        console.log(`Encontrada sección ${sectionName} en línea ${i + 1}`);
         inSection = true;
-        sectionContent = `${sectionName}:\n`;
-        
-        // Determinar la indentación de la sección
-        indentation = line.search(/\S/);
+        sectionContent = line + '\n';
+        sectionIndentation = lineIndentation;
         continue;
       }
       
       // Si estamos dentro de la sección
       if (inSection) {
-        // Si encontramos otra sección de nivel superior (sin indentación), salimos
-        if (line.trim() && line.search(/\S/) <= indentation && i > 0 && 
-            /^[A-Za-z0-9]+:/.test(line.trim())) {
+        // Si encontramos otra sección de nivel superior o menor indentación, salimos
+        if (trimmedLine && lineIndentation !== -1 && lineIndentation <= sectionIndentation && 
+            /^[A-Za-z0-9]+:/.test(trimmedLine)) {
+          console.log(`Fin de sección ${sectionName} en línea ${i + 1}: ${trimmedLine}`);
           break;
         }
         
@@ -43,7 +46,11 @@ export class TemplateExtractorService {
       }
     }
     
-    return sectionContent.trim();
+    const result = sectionContent.trim();
+    console.log(`Sección ${sectionName} extraída, longitud: ${result.length}`);
+    console.log(`Primeros 200 caracteres: ${result.substring(0, 200)}`);
+    
+    return result;
   }
   
   /**

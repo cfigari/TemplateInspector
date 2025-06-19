@@ -1,0 +1,439 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Complete serverless web application with API Gateway, Lambda, DynamoDB, Cognito, and S3'
+
+Parameters:
+  AppName:
+    Type: String
+    Description: Name of the application
+    Default: MyWebApp
+  
+  Environment:
+    Type: String
+    Description: Environment name
+    Default: dev
+    AllowedValues:
+      - dev
+      - test
+      - prod
+  
+  DomainName:
+    Type: String
+    Description: Domain name for the application
+    Default: mywebapp.com
+
+Globals:
+  Function:
+    Runtime: python3.9
+    Timeout: 30
+    MemorySize: 256
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref DynamoDBTable
+        USER_POOL_ID: !Ref CognitoUserPool
+        USER_POOL_CLIENT_ID: !Ref CognitoUserPoolClient
+
+Mappings:
+  EnvironmentMap:
+    dev:
+      DBReadCapacity: 5
+      DBWriteCapacity: 5
+      LambdaMemory: 256
+    test:
+      DBReadCapacity: 10
+      DBWriteCapacity: 10
+      LambdaMemory: 512
+    prod:
+      DBReadCapacity: 20
+      DBWriteCapacity: 20
+      LambdaMemory: 1024
+
+Conditions:
+  IsProduction: !Equals [!Ref Environment, prod]
+  IsDevelopment: !Equals [!Ref Environment, dev]
+
+Resources:
+  # Cognito User Pool for Authentication
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "${AppName}-${Environment}-users"
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+        - Name: name
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+      UsernameAttributes:
+        - email
+      UserPoolTags:
+        Name: !Sub "${AppName}-${Environment}-users"
+        Environment: !Ref Environment
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      ClientName: !Sub "${AppName}-${Environment}-client"
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ADMIN_NO_SRP_AUTH
+        - USER_PASSWORD_AUTH
+      SupportedIdentityProviders:
+        - COGNITO
+
+  CognitoIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: !Sub "${AppName}-${Environment}-identity"
+      AllowUnauthenticatedIdentities: false
+      CognitoIdentityProviders:
+        - ClientId: !Ref CognitoUserPoolClient
+          ProviderName: !GetAtt CognitoUserPool.ProviderName
+
+  # DynamoDB Table
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AppName}-${Environment}-data"
+      BillingMode: PROVISIONED
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: !FindInMap [EnvironmentMap, !Ref Environment, DBReadCapacity]
+        WriteCapacityUnits: !FindInMap [EnvironmentMap, !Ref Environment, DBWriteCapacity]
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: !FindInMap [EnvironmentMap, !Ref Environment, DBReadCapacity]
+            WriteCapacityUnits: !FindInMap [EnvironmentMap, !Ref Environment, DBWriteCapacity]
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProduction, true, false]
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AppName}-${Environment}-data"
+        - Key: Environment
+          Value: !Ref Environment
+
+  # S3 Bucket for file storage
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AppName}-${Environment}-files-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - DELETE
+            AllowedOrigins:
+              - "*"
+            MaxAge: 3000
+
+  # Lambda Functions
+  AuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AppName}-${Environment}-authorizer"
+      CodeUri: src/authorizer/
+      Handler: app.lambda_handler
+      MemorySize: !FindInMap [EnvironmentMap, !Ref Environment, LambdaMemory]
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+              Resource: !GetAtt CognitoUserPool.Arn
+
+  GetItemsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AppName}-${Environment}-get-items"
+      CodeUri: src/get_items/
+      Handler: app.lambda_handler
+      MemorySize: !FindInMap [EnvironmentMap, !Ref Environment, LambdaMemory]
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref DynamoDBTable
+      Events:
+        GetItems:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /items
+            Method: GET
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  CreateItemFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AppName}-${Environment}-create-item"
+      CodeUri: src/create_item/
+      Handler: app.lambda_handler
+      MemorySize: !FindInMap [EnvironmentMap, !Ref Environment, LambdaMemory]
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref DynamoDBTable
+      Events:
+        CreateItem:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /items
+            Method: POST
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  UpdateItemFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AppName}-${Environment}-update-item"
+      CodeUri: src/update_item/
+      Handler: app.lambda_handler
+      MemorySize: !FindInMap [EnvironmentMap, !Ref Environment, LambdaMemory]
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref DynamoDBTable
+      Events:
+        UpdateItem:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /items/{id}
+            Method: PUT
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  DeleteItemFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AppName}-${Environment}-delete-item"
+      CodeUri: src/delete_item/
+      Handler: app.lambda_handler
+      MemorySize: !FindInMap [EnvironmentMap, !Ref Environment, LambdaMemory]
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref DynamoDBTable
+      Events:
+        DeleteItem:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /items/{id}
+            Method: DELETE
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  FileUploadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AppName}-${Environment}-file-upload"
+      CodeUri: src/file_upload/
+      Handler: app.lambda_handler
+      MemorySize: !FindInMap [EnvironmentMap, !Ref Environment, LambdaMemory]
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref S3Bucket
+      Events:
+        FileUpload:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /upload
+            Method: POST
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  # API Gateway
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "${AppName}-${Environment}-api"
+      StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt CognitoUserPool.Arn
+        DefaultAuthorizer: CognitoAuthorizer
+      GatewayResponses:
+        DEFAULT_4XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: "'*'"
+              Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        DEFAULT_5XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: "'*'"
+              Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+
+  # CloudWatch Log Groups
+  ApiGatewayLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/${AppName}-${Environment}"
+      RetentionInDays: !If [IsProduction, 30, 7]
+
+  # CloudWatch Alarms
+  HighErrorRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AppName}-${Environment}-HighErrorRate"
+      AlarmDescription: High error rate in API Gateway
+      MetricName: 4XXError
+      Namespace: AWS/ApiGateway
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ApiName
+          Value: !Sub "${AppName}-${Environment}-api"
+
+  DynamoDBThrottleAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AppName}-${Environment}-DynamoDBThrottle"
+      AlarmDescription: DynamoDB throttling detected
+      MetricName: ThrottledRequests
+      Namespace: AWS/DynamoDB
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: TableName
+          Value: !Ref DynamoDBTable
+
+  # IAM Roles
+  CognitoAuthenticatedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                'cognito-identity.amazonaws.com:aud': !Ref CognitoIdentityPool
+              'ForAnyValue:StringLike':
+                'cognito-identity.amazonaws.com:amr': authenticated
+      Policies:
+        - PolicyName: CognitoAuthenticatedPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: !Sub "${S3Bucket.Arn}/private/${cognito-identity.amazonaws.com:sub}/*"
+
+  IdentityPoolRoleAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref CognitoIdentityPool
+      Roles:
+        authenticated: !GetAtt CognitoAuthenticatedRole.Arn
+
+Outputs:
+  ApiGatewayUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiUrl"
+  
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref CognitoUserPool
+    Export:
+      Name: !Sub "${AWS::StackName}-UserPoolId"
+  
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref CognitoUserPoolClient
+    Export:
+      Name: !Sub "${AWS::StackName}-UserPoolClientId"
+  
+  IdentityPoolId:
+    Description: Cognito Identity Pool ID
+    Value: !Ref CognitoIdentityPool
+    Export:
+      Name: !Sub "${AWS::StackName}-IdentityPoolId"
+  
+  DynamoDBTableName:
+    Description: DynamoDB table name
+    Value: !Ref DynamoDBTable
+    Export:
+      Name: !Sub "${AWS::StackName}-TableName"
+  
+  S3BucketName:
+    Description: S3 bucket name
+    Value: !Ref S3Bucket
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketName"

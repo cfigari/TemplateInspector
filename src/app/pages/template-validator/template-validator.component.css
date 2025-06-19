@@ -1,175 +1,64 @@
-.table-sm td, .table-sm th {
-  padding: 0.25rem 0.5rem;
-}
-
-.table-bordered {
-  border: 1px solid #dee2e6;
-}
-
-.table-hover tbody tr:hover {
-  background-color: rgba(0, 0, 0, 0.075);
-}
-
-.table-light {
-  background-color: #f8f9fa;
-}
-
-.mb-0 {
-  margin-bottom: 0 !important;
-}
-
-.mb-1 {
-  margin-bottom: 0.25rem !important;
-}
-
-.mb-2 {
-  margin-bottom: 0.5rem !important;
-}
-
-.mb-3 {
-  margin-bottom: 1rem !important;
-}
-
-.me-1 {
-  margin-right: 0.25rem !important;
-}
-
-.me-2 {
-  margin-right: 0.5rem !important;
-}
-
-.ms-1 {
-  margin-left: 0.25rem !important;
-}
-
-.ms-2 {
-  margin-left: 0.5rem !important;
-}
-
-.ms-3 {
-  margin-left: 1rem !important;
-}
-
-.ms-4 {
-  margin-left: 1.5rem !important;
-}
-
-.mt-2 {
-  margin-top: 0.5rem !important;
-}
-
-.d-flex {
-  display: flex !important;
-}
-
-.align-items-center {
-  align-items: center !important;
-}
-
-/* Estilos para elementos complejos */
-.complex-value {
-  background-color: #f8f9fa;
-  padding: 0.25rem;
-  border-radius: 0.25rem;
-  font-family: monospace;
-  white-space: pre-wrap;
-  font-size: 0.85rem;
-  margin: 0;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
 .complex-property {
-  max-width: 600px;
-  overflow-x: auto;
+  max-width: 300px;
 }
 
-/* Estilos para mappings */
-.mapping-env {
-  margin-bottom: 1rem;
-  padding: 0.5rem;
-  border-radius: 0.25rem;
-  background-color: #f8f9fa;
+.complex-value {
+  font-size: 0.8rem;
+  max-height: 100px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
-.mapping-env-name {
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-}
-
-.mapping-property {
-  margin-left: 1rem;
-  margin-bottom: 0.25rem;
-}
-
-.mapping-property-name {
-  font-weight: bold;
-}
-
-.mapping-property-value {
-  font-family: monospace;
-  word-break: break-all;
-}
-
-/* Estilos para badges */
-.badge {
-  display: inline-block;
-  padding: 0.25em 0.4em;
-  font-size: 75%;
-  font-weight: 700;
-  line-height: 1;
-  text-align: center;
-  white-space: nowrap;
-  vertical-align: baseline;
-  border-radius: 0.25rem;
-}
-
-.bg-secondary {
-  background-color: #6c757d !important;
-}
-
-.bg-light {
-  background-color: #f8f9fa !important;
-}
-
-.text-dark {
-  color: #212529 !important;
-}
-
-.text-white {
-  color: #fff !important;
-}
-
-/* Estilos para botones de tipo de recurso */
 .resource-type-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 1rem;
 }
 
-.resource-type-buttons .btn {
-  display: flex;
-  align-items: center;
+.mapping-env {
+  margin-bottom: 0.5rem;
+}
+
+.mapping-env-name {
+  font-weight: bold;
+  color: #495057;
+}
+
+.mapping-property {
+  margin-left: 1rem;
   font-size: 0.9rem;
 }
 
-.resource-type-buttons .btn i {
-  margin-right: 0.25rem;
-}
-
-.btn-primary {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
-  color: #fff;
-}
-
-.btn-outline-secondary {
+.mapping-property-name {
+  font-weight: 500;
   color: #6c757d;
-  border-color: #6c757d;
 }
 
-.btn-outline-secondary:hover {
-  background-color: #6c757d;
-  color: #fff;
+.mapping-property-value {
+  display: inline;
+  margin-left: 0.25rem;
+}
+
+/* Ajustar ancho de columnas específicas */
+.table th:first-child,
+.table td:first-child {
+  width: 200px;
+  min-width: 200px;
+  max-width: 200px;
+  word-break: break-word;
+}
+
+.table th:last-child,
+.table td:last-child {
+  width: 100px;
+  min-width: 100px;
+  max-width: 100px;
+  text-align: center;
+}
+
+/* Hacer que las columnas del medio se ajusten automáticamente */
+.table th:not(:first-child):not(:last-child),
+.table td:not(:first-child):not(:last-child) {
+  width: auto;
 }
