@@ -30,8 +30,7 @@ export const routes: Routes = [
   },
   {
     path: 'settings',
-    loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent)
-    // Aquí se cargaría el componente real de configuración cuando se cree
+    loadComponent: () => import('./pages/settings/settings.component').then(m => m.SettingsComponent)
   },
   {
     path: '**',

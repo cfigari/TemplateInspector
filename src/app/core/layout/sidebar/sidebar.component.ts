@@ -17,8 +17,7 @@ export class SidebarComponent implements OnInit {
     { icon: 'bi bi-file-code', title: 'Templates', route: '/templates' },
     { icon: 'bi bi-check-circle', title: 'Validación', route: '/validation' },
     { icon: 'bi bi-shield-check', title: 'Seguridad', route: '/security' },
-    { icon: 'bi bi-graph-up', title: 'Costos', route: '/costs' },
-    { icon: 'bi bi-gear', title: 'Configuración', route: '/settings' }
+    { icon: 'bi bi-graph-up', title: 'Costos', route: '/costs' }
   ];
 
   version = {

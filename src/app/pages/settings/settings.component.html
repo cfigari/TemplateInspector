@@ -1,0 +1,193 @@
+<div class="container-fluid p-4">
+  <h2 class="mb-4">Configuración</h2>
+
+  <!-- Card único con layout dividido -->
+  <div class="card shadow-sm">
+    <div class="card-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-palette me-2"></i>
+          Paletas de Colores
+        </h5>
+        <div class="header-actions">
+          <button class="btn btn-outline-primary btn-sm me-2" (click)="showAddCustomPalette()" title="Crear paleta personalizada">
+            <i class="bi bi-plus-circle"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card-body p-0">
+      <div class="row g-0">
+        
+        <!-- Lista de paletas (izquierda) -->
+        <div class="col-md-4 palette-list">
+          <div class="list-group list-group-flush">
+            <div class="list-group-item list-group-item-action p-3" 
+                 *ngFor="let palette of availablePalettes"
+                 [class.active]="selectedPalette?.id === palette.id"
+                 (click)="selectPalette(palette)">
+              
+              <div class="d-flex align-items-center">
+                <!-- Preview de colores -->
+                <div class="color-preview me-3">
+                  <div class="color-dot" [style.background-color]="palette.colors.primary"></div>
+                  <div class="color-dot" [style.background-color]="palette.colors.secondary"></div>
+                  <div class="color-dot" [style.background-color]="palette.colors.accent"></div>
+                </div>
+                
+                <!-- Información de la paleta -->
+                <div class="flex-grow-1">
+                  <h6 class="mb-1">{{ palette.name }}</h6>
+                  <small class="text-muted">{{ isCustomPalette(palette) ? 'Personalizada' : 'Predefinida' }}</small>
+                </div>
+                
+                <!-- Indicador de tema actual -->
+                <div class="current-indicator" *ngIf="isCurrentTheme(palette)">
+                  <i class="bi bi-check-circle-fill text-success"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Configuración de la paleta seleccionada (derecha) -->
+        <div class="col-md-8 palette-config">
+          <div class="p-4" *ngIf="selectedPalette">
+            
+            <!-- Información de la paleta -->
+            <div class="mb-4">
+              <h5>{{ selectedPalette.name }}</h5>
+              <p class="text-muted mb-3">
+                {{ isCustomPalette(selectedPalette) ? 'Paleta personalizada' : 'Paleta predefinida' }}
+              </p>
+              
+              <!-- Botones de acción solo para paletas personalizadas -->
+              <div class="d-flex gap-2" *ngIf="isCustomPalette(selectedPalette)">
+                <button class="btn btn-primary" 
+                        (click)="applySelectedPalette()"
+                        [disabled]="isCurrentTheme(selectedPalette)">
+                  <i class="bi bi-check-circle me-2"></i>
+                  {{ isCurrentTheme(selectedPalette) ? 'Tema Actual' : 'Aplicar Tema' }}
+                </button>
+                
+                <button class="btn btn-outline-danger" 
+                        (click)="removeCustomPalette(selectedPalette)" 
+                        title="Eliminar esta paleta">
+                  <i class="bi bi-trash me-2"></i>
+                  Eliminar Paleta
+                </button>
+              </div>
+              
+              <!-- Mensaje para paletas predefinidas -->
+              <div *ngIf="!isCustomPalette(selectedPalette)" class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                Esta paleta se aplica automáticamente al seleccionarla
+              </div>
+            </div>
+            
+            <!-- Colores de la paleta -->
+            <div class="colors-grid">
+              <div class="color-item" *ngFor="let color of selectedPalette.colors | keyvalue">
+                <div class="color-sample" [style.background-color]="color.value"></div>
+                <div class="color-info">
+                  <span class="color-name">{{ getColorDisplayName(color.key) }}</span>
+                  <code class="color-value">{{ color.value }}</code>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Vista previa -->
+            <div class="preview-section mt-4">
+              <h6 class="mb-3">Vista Previa</h6>
+              <div class="preview-card">
+                <div class="preview-header" [style.background-color]="selectedPalette.colors.primary">
+                  <span [style.color]="selectedPalette.colors.surface">Encabezado Principal</span>
+                </div>
+                <div class="preview-body" [style.background-color]="selectedPalette.colors.surface">
+                  <p [style.color]="selectedPalette.colors.text" class="mb-2">Texto principal del contenido</p>
+                  <p [style.color]="selectedPalette.colors.textSecondary" class="mb-3">Texto secundario</p>
+                  
+                  <div class="preview-buttons">
+                    <button class="btn btn-sm me-2" 
+                            [style.background-color]="selectedPalette.colors.primary"
+                            [style.color]="selectedPalette.colors.surface">
+                      Primario
+                    </button>
+                    <button class="btn btn-sm me-2" 
+                            [style.background-color]="selectedPalette.colors.success"
+                            [style.color]="selectedPalette.colors.surface">
+                      Éxito
+                    </button>
+                    <button class="btn btn-sm" 
+                            [style.background-color]="selectedPalette.colors.danger"
+                            [style.color]="selectedPalette.colors.surface">
+                      Peligro
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Mensaje cuando no hay paleta seleccionada -->
+          <div class="p-4 text-center text-muted" *ngIf="!selectedPalette">
+            <i class="bi bi-palette display-4 mb-3"></i>
+            <p>Selecciona una paleta de la lista para ver su configuración</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulario de paleta personalizada (modal overlay) -->
+  <div class="custom-palette-overlay" *ngIf="showCustomPaletteForm">
+    <div class="custom-palette-form">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h6 class="mb-0">Nueva Paleta Personalizada</h6>
+        </div>
+        <div class="card-body">
+          
+          <!-- Nombre de la paleta -->
+          <div class="mb-3">
+            <label class="form-label">Nombre de la Paleta</label>
+            <input type="text" 
+                   class="form-control" 
+                   [(ngModel)]="customPalette.name"
+                   placeholder="Ej: Mi Paleta Azul">
+          </div>
+
+          <!-- Selectores de color en grid -->
+          <div class="color-inputs-grid">
+            <div class="color-input-item" *ngFor="let color of customPalette.colors | keyvalue">
+              <label class="form-label">{{ getColorDisplayName(color.key) }}</label>
+              <div class="color-input-group">
+                <input type="color" 
+                       class="form-control form-control-color" 
+                       [ngModel]="color.value"
+                       (ngModelChange)="updateCustomColor(color.key, $event)">
+                <input type="text" 
+                       class="form-control form-control-sm" 
+                       [ngModel]="color.value"
+                       (ngModelChange)="updateCustomColor(color.key, $event)">
+              </div>
+            </div>
+          </div>
+
+          <!-- Botones de acción -->
+          <div class="d-flex gap-2 mt-4">
+            <button class="btn btn-primary" (click)="saveCustomPalette()">
+              <i class="bi bi-save me-2"></i>
+              Guardar
+            </button>
+            <button class="btn btn-secondary" (click)="hideCustomPaletteForm()">
+              <i class="bi bi-x-circle me-2"></i>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
