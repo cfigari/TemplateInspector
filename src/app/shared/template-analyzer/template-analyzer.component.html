@@ -1,0 +1,118 @@
+<div class="analyzer-modal">
+  <div class="modal-header">
+    <h5 class="modal-title">
+      <i class="bi bi-search me-2"></i>
+      Análisis de {{ resource.type }} - {{ resource.logicalId }}
+    </h5>
+  </div>
+  
+  <div class="modal-body">
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-3">
+      <li class="nav-item">
+        <a class="nav-link" [class.active]="activeTab === 'extractor'" (click)="setActiveTab('extractor')">
+          <i class="bi bi-extract me-2"></i>
+          Extractor
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" [class.active]="activeTab === 'validator'" (click)="setActiveTab('validator')">
+          <i class="bi bi-check-circle me-2"></i>
+          Validator
+        </a>
+      </li>
+    </ul>
+
+    <!-- Tab Extractor -->
+    <div *ngIf="activeTab === 'extractor'" class="tab-content">
+      <div class="function-selector mb-3">
+        <label class="form-label">Función del Extractor</label>
+        <select class="form-select" [(ngModel)]="selectedExtractorFunction" (change)="onExtractorFunctionChange()">
+          <option value="">Selecciona una función...</option>
+          <option *ngFor="let func of extractorFunctions" [value]="func.id">{{ func.name }}</option>
+        </select>
+      </div>
+
+      <!-- Parámetros dinámicos -->
+      <div *ngIf="selectedExtractorFunction" class="parameters mb-3">
+        <h6>Parámetros</h6>
+        <div class="mb-3">
+          <label class="form-label">Template Content</label>
+          <textarea class="form-control" rows="4" [(ngModel)]="extractorParams['templateContent']" 
+                    placeholder="Contenido del template YAML..."></textarea>
+        </div>
+        <div class="mb-3" *ngIf="extractorParams['resourceContent']">
+          <label class="form-label">Resource Content</label>
+          <textarea class="form-control" rows="3" [(ngModel)]="extractorParams['resourceContent']" 
+                    placeholder="Contenido del recurso específico..."></textarea>
+        </div>
+      </div>
+
+      <!-- Botón ejecutar -->
+      <div class="mb-3" *ngIf="selectedExtractorFunction">
+        <button class="btn btn-primary" (click)="executeExtractorFunction()">
+          <i class="bi bi-play-fill me-2"></i>
+          Ejecutar Función
+        </button>
+      </div>
+
+      <!-- Error -->
+      <div *ngIf="extractorError" class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        {{ extractorError }}
+      </div>
+
+      <!-- Resultado -->
+      <div *ngIf="extractorResult" class="result">
+        <h6>Resultado</h6>
+        <pre class="result-json">{{ formatJson(extractorResult) }}</pre>
+      </div>
+    </div>
+
+    <!-- Tab Validator -->
+    <div *ngIf="activeTab === 'validator'" class="tab-content">
+      <div class="function-selector mb-3">
+        <label class="form-label">Función del Validator</label>
+        <select class="form-select" [(ngModel)]="selectedValidatorFunction" (change)="onValidatorFunctionChange()">
+          <option value="">Selecciona una función...</option>
+          <option *ngFor="let func of validatorFunctions" [value]="func.id">{{ func.name }}</option>
+        </select>
+      </div>
+
+      <!-- Parámetros dinámicos -->
+      <div *ngIf="selectedValidatorFunction" class="parameters mb-3">
+        <h6>Parámetros</h6>
+        <div class="mb-3">
+          <label class="form-label">Template Content</label>
+          <textarea class="form-control" rows="4" [(ngModel)]="validatorParams['templateContent']" 
+                    placeholder="Contenido del template YAML..."></textarea>
+        </div>
+        <div class="mb-3" *ngIf="validatorParams['resourceContent']">
+          <label class="form-label">Resource Content</label>
+          <textarea class="form-control" rows="3" [(ngModel)]="validatorParams['resourceContent']" 
+                    placeholder="Contenido del recurso específico..."></textarea>
+        </div>
+      </div>
+
+      <!-- Botón ejecutar -->
+      <div class="mb-3" *ngIf="selectedValidatorFunction">
+        <button class="btn btn-success" (click)="executeValidatorFunction()">
+          <i class="bi bi-play-fill me-2"></i>
+          Ejecutar Validación
+        </button>
+      </div>
+
+      <!-- Error -->
+      <div *ngIf="validatorError" class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        {{ validatorError }}
+      </div>
+
+      <!-- Resultado -->
+      <div *ngIf="validatorResult" class="result">
+        <h6>Resultado de Validación</h6>
+        <pre class="result-json">{{ formatJson(validatorResult) }}</pre>
+      </div>
+    </div>
+  </div>
+</div>

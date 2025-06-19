@@ -1,0 +1,157 @@
+.analyzer-modal {
+  width: 90vw;
+  max-width: 1000px;
+  max-height: 90vh;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.modal-header {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.nav-tabs .nav-link {
+  color: var(--text-color);
+  border: 1px solid transparent;
+  font-size: 0.9rem;
+}
+
+.nav-tabs .nav-link:hover {
+  border-color: var(--primary-color) var(--primary-color) #dee2e6;
+  color: var(--primary-color);
+}
+
+.nav-tabs .nav-link.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color) var(--primary-color) #fff;
+}
+
+.function-selector {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.parameters {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.parameters h6 {
+  color: var(--primary-color);
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.form-control {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.85rem;
+}
+
+.result {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  margin-top: 1rem;
+}
+
+.result h6 {
+  color: var(--success-color);
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.result-json {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  padding: 1rem;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.alert {
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.btn {
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-success {
+  background-color: var(--success-color);
+  border-color: var(--success-color);
+}
+
+/* Scrollbar personalizado para el resultado JSON */
+.result-json::-webkit-scrollbar {
+  width: 8px;
+}
+
+.result-json::-webkit-scrollbar-track {
+  background: #4a5568;
+  border-radius: 4px;
+}
+
+.result-json::-webkit-scrollbar-thumb {
+  background: #718096;
+  border-radius: 4px;
+}
+
+.result-json::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .analyzer-modal {
+    width: 95vw;
+    max-height: 95vh;
+  }
+  
+  .modal-body {
+    padding: 1rem;
+    max-height: 80vh;
+  }
+  
+  .result-json {
+    font-size: 0.75rem;
+    max-height: 200px;
+  }
+}

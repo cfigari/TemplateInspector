@@ -97,10 +97,13 @@
               </td>
               <td>
                 <div class="btn-group">
-                  <button class="btn btn-sm btn-outline-primary" title="Ver detalles" (click)="viewTemplate(template.id)">
+                  <button class="btn btn-sm btn-outline-primary" title="Ver detalles" (click)="viewTemplate(template.id?.toString() || '')">
                     <i class="bi bi-eye"></i>
                   </button>
-                  <button class="btn btn-sm btn-outline-secondary" title="Descargar" (click)="downloadTemplate(template.id)">
+                  <button class="btn btn-sm btn-outline-info" title="Analizar" (click)="analyzeTemplate(template)">
+                    <i class="bi bi-search"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-secondary" title="Descargar" (click)="downloadTemplate(template.id?.toString() || '')">
                     <i class="bi bi-download"></i>
                   </button>
                   <button class="btn btn-sm btn-outline-danger" title="Eliminar" (click)="showDeleteConfirmation(template)">
@@ -131,6 +134,24 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
         <button type="button" class="btn btn-danger" (click)="confirmDelete()">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal del analizador -->
+<div class="modal fade" id="analyzerModal" tabindex="-1" aria-labelledby="analyzerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        <app-template-analyzer 
+          *ngIf="selectedTemplateForAnalysis"
+          [resource]="selectedTemplateForAnalysis"
+          [templateContent]="selectedTemplateContent">
+        </app-template-analyzer>
       </div>
     </div>
   </div>
